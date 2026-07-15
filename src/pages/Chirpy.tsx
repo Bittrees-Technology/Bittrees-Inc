@@ -7,7 +7,6 @@
 
 const CHIRPY_WEB = "https://chirpy.bittrees.org";
 const CHIRPY_REPO = "https://github.com/Bittrees-Technology/chirpy";
-const CHIRPY_RELEASES = "https://github.com/Bittrees-Technology/chirpy/releases/latest";
 
 const FEATURES: { title: string; body: string }[] = [
   {
@@ -30,7 +29,7 @@ const FEATURES: { title: string; body: string }[] = [
 
 const PLATFORMS: { name: string; status: string; cta: string; href: string; primary?: boolean }[] = [
   { name: "Web", status: "Live now — runs in any browser", cta: "Open Chirpy", href: CHIRPY_WEB, primary: true },
-  { name: "macOS desktop", status: "Signed build, auto-updating", cta: "Download", href: CHIRPY_RELEASES },
+  { name: "macOS desktop", status: "In development — no build published yet", cta: "View progress", href: CHIRPY_REPO },
   { name: "iOS", status: "Coming to the App Store", cta: "On the roadmap", href: CHIRPY_REPO },
 ];
 
@@ -92,8 +91,8 @@ export default function Chirpy() {
           <a className="btn-primary" href={CHIRPY_WEB} target="_blank" rel="noreferrer">
             Open the web app ↗
           </a>
-          <a className="btn-ghost" href={CHIRPY_RELEASES} target="_blank" rel="noreferrer">
-            Download for macOS ↗
+          <a className="btn-ghost" href={CHIRPY_REPO} target="_blank" rel="noreferrer">
+            Chirpy on GitHub ↗
           </a>
         </div>
       </header>
@@ -123,11 +122,12 @@ export default function Chirpy() {
           ))}
         </div>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.76rem", color: "var(--color-ink-dim)", margin: 0 }}>
-          Desktop builds are signed and publish to{" "}
-          <a href={CHIRPY_RELEASES} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
-            GitHub Releases ↗
-          </a>{" "}
-          — the app then keeps itself up to date automatically.
+          Signed, auto-updating desktop builds are on the roadmap and not published yet — track
+          progress on{" "}
+          <a href={CHIRPY_REPO} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
+            GitHub ↗
+          </a>
+          .
         </p>
       </section>
 
