@@ -73,6 +73,28 @@ Without KV, public reads still work but every admin write returns
   (`VITE_` baked in) and the functions (KV/RPC read at runtime) only update on a new build.
 - **Domain:** Settings → Domains → add `gov.bittrees.org` (replaces the legacy CRA deploy).
 
+## 4A · Read-only release gate
+
+Use the release gate before promotion, and again after any rollback. It never writes to
+production; it only captures a baseline snapshot, validates a canary URL, and compares the
+current surface back to the saved baseline.
+
+```bash
+npm run release:gate -- --mode baseline
+npm run release:gate -- --mode canary --base-url https://<preview-host> --baseline output/release-gates/<baseline-run>/run.json
+npm run release:gate -- --mode rollback-check --baseline output/release-gates/<baseline-run>/run.json
+```
+
+What it checks:
+
+- SPA routes stay reachable (`/`, `/proposals`, `/forum`, `/chat`, `/contribute`, `/admin`)
+- `/api/community`, `/api/rooms`, `/api/usersync`, and the malformed-input `/api/gate`
+  contract stay healthy
+- Rollback verification compares status and structural response signatures to the saved
+  baseline instead of trying to mutate live state
+
+Each run writes `run.json` and `report.md` under `output/release-gates/`.
+
 ---
 
 ## 5 · Post-deploy admin steps

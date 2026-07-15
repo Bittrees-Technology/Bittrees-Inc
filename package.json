@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release:gate": "node scripts/release-gate.mjs",
+    "test:release-gate": "node --test scripts/release-gate.test.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
