@@ -15,9 +15,9 @@ import { useRouteMeta } from "../lib/routeMeta";
 
 const CHIRPY_WEB = "https://chirpy.bittrees.org";
 const CHIRPY_REPO = "https://github.com/Bittrees-Technology/chirpy";
-const PAGE_TITLE = "Chirpy — Wallet-Native Chat for Any Community | Bittrees";
+const PAGE_TITLE = "Chirpy — Wallet-native chat for any community | Bittrees";
 const PAGE_DESCRIPTION =
-  "Chirpy is wallet-native chat: private DMs and token-gated rooms with no email or password. Live on the web now, with macOS and iOS in development.";
+  "Private DMs and token-gated rooms in one wallet-native app. Live on the web, macOS and iOS on the way. Open source by Bittrees.";
 
 const FEATURES: { title: string; body: string }[] = [
   {
@@ -91,7 +91,7 @@ export default function Chirpy() {
           <div>
             <p className="text-label" style={{ margin: 0 }}>Bittrees · Chat</p>
             <h1 className="text-display" style={{ margin: 0 }}>
-              Chirpy: wallet-native chat for any community
+              Chirpy — wallet-native chat for any community
             </h1>
           </div>
         </div>
@@ -105,8 +105,8 @@ export default function Chirpy() {
             maxWidth: "640px",
           }}
         >
-          Private DMs and token-gated rooms, no email or password required — live on the web
-          now, with macOS and iOS in development.
+          Private DMs and token-gated rooms, no email or password required — live in the
+          browser today, with macOS and iOS on the way.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
           <a className="btn-primary" href={CHIRPY_WEB} target="_blank" rel="noreferrer">
@@ -171,15 +171,22 @@ export default function Chirpy() {
 
       {/* Contributor tie-in */}
       <section className="card" style={{ display: "flex", flexDirection: "column", gap: "0.6rem", padding: "1.5rem" }}>
-        <h2 className="text-title" style={{ margin: 0 }}>Help build Chirpy</h2>
+        <h2 className="text-title" style={{ margin: 0 }}>Made to plug you into Bittrees</h2>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.85rem", lineHeight: 1.6, color: "var(--color-ink-muted)", margin: 0, maxWidth: "560px" }}>
-          Chirpy is open source and actively developed. If you want to ship features, harden the
-          macOS/iOS clients, or build integrations on top of it, Bittrees contributors get scoped
-          tasks and a path to get paid for the work.
+          Import the Bittrees Inc and Research orgs to reach contributors and coordinate onchain
+          work.
         </p>
-        <Link className="btn-primary" to={ROUTES.contribute} style={{ marginTop: "0.4rem", alignSelf: "flex-start" }}>
-          Become a Bittrees contributor
-        </Link>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.82rem", color: "var(--color-ink-dim)", margin: 0 }}>
+          Open Chirpy → import Bittrees → say hi in #contributors.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginTop: "0.4rem" }}>
+          <a className="btn-primary" href={CHIRPY_WEB} target="_blank" rel="noreferrer">
+            Open Chirpy ↗
+          </a>
+          <Link className="btn-ghost" to={ROUTES.contribute}>
+            Become a Bittrees contributor
+          </Link>
+        </div>
       </section>
 
       {/* Footer note */}
