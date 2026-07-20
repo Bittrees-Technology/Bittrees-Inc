@@ -3,10 +3,21 @@
  * gov.bittrees.org/chirpy. Links out to the live web app and the desktop
  * downloads (published as GitHub Releases on the chirpy repo). Org-agnostic
  * product, so the copy stays product-first with a light Bittrees framing.
+ *
+ * Applies its own title/description/canonical/OG tags via useRouteMeta —
+ * this is a client-rendered SPA, so index.html's site-wide governance meta
+ * would otherwise leak onto this route (and social-share previews).
  */
+
+import { Link } from "react-router";
+import { ROUTES } from "../lib/links";
+import { useRouteMeta } from "../lib/routeMeta";
 
 const CHIRPY_WEB = "https://chirpy.bittrees.org";
 const CHIRPY_REPO = "https://github.com/Bittrees-Technology/chirpy";
+const PAGE_TITLE = "Chirpy — Wallet-Native Chat for Any Community | Bittrees";
+const PAGE_DESCRIPTION =
+  "Chirpy is wallet-native chat: private DMs and token-gated rooms with no email or password. Live on the web now, with macOS and iOS in development.";
 
 const FEATURES: { title: string; body: string }[] = [
   {
@@ -63,6 +74,14 @@ function ChirpMark() {
 }
 
 export default function Chirpy() {
+  useRouteMeta({
+    title: PAGE_TITLE,
+    description: PAGE_DESCRIPTION,
+    canonical: "https://gov.bittrees.org/chirpy",
+    ogImage: "https://gov.bittrees.org/bittrees_logo_tree.png",
+    twitterCard: "summary_large_image",
+  });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem", maxWidth: "820px", margin: "0 auto", width: "100%" }}>
       {/* Hero */}
@@ -71,7 +90,9 @@ export default function Chirpy() {
           <ChirpMark />
           <div>
             <p className="text-label" style={{ margin: 0 }}>Bittrees · Chat</p>
-            <h1 className="text-display" style={{ margin: 0 }}>Chirpy</h1>
+            <h1 className="text-display" style={{ margin: 0 }}>
+              Chirpy: wallet-native chat for any community
+            </h1>
           </div>
         </div>
         <p
@@ -84,8 +105,8 @@ export default function Chirpy() {
             maxWidth: "640px",
           }}
         >
-          Wallet-native chat for any community — private DMs and token-gated rooms, in one
-          app that runs on the web, macOS, and iOS.
+          Private DMs and token-gated rooms, no email or password required — live on the web
+          now, with macOS and iOS in development.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
           <a className="btn-primary" href={CHIRPY_WEB} target="_blank" rel="noreferrer">
@@ -146,6 +167,19 @@ export default function Chirpy() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Contributor tie-in */}
+      <section className="card" style={{ display: "flex", flexDirection: "column", gap: "0.6rem", padding: "1.5rem" }}>
+        <h2 className="text-title" style={{ margin: 0 }}>Help build Chirpy</h2>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.85rem", lineHeight: 1.6, color: "var(--color-ink-muted)", margin: 0, maxWidth: "560px" }}>
+          Chirpy is open source and actively developed. If you want to ship features, harden the
+          macOS/iOS clients, or build integrations on top of it, Bittrees contributors get scoped
+          tasks and a path to get paid for the work.
+        </p>
+        <Link className="btn-primary" to={ROUTES.contribute} style={{ marginTop: "0.4rem", alignSelf: "flex-start" }}>
+          Become a Bittrees contributor
+        </Link>
       </section>
 
       {/* Footer note */}

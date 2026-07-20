@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "release:gate": "node scripts/release-gate.mjs",
-    "test:release-gate": "node --test scripts/release-gate.test.mjs"
+    "test:release-gate": "node --test scripts/release-gate.test.mjs",
+    "test:unit": "node --test src/lib/routeMeta.test.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
