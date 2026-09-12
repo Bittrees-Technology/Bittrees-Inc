@@ -77,7 +77,7 @@ The <strong>bittrees.eth</strong> family comprises Bittrees, Inc., Bittrees Rese
           gov.bittrees.eth
         </a>
         ). Treasury holdings for each entity are tracked on{" "}
-        <a href="https://capital.bittrees.org" target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
+        <a data-insights="navigate-capitalbittreesorg/" href="https://capital.bittrees.org" target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
           Bittrees Capital
         </a>
         .

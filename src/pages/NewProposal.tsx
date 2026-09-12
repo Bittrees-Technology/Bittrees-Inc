@@ -131,7 +131,7 @@ export default function NewProposal() {
                   </div>
                 ))}
                 <div>
-                  <button type="button" onClick={() => setChoices((cur) => [...cur, ""])} style={pillBtn}>+ Add choice</button>
+                  <button data-insights="add-choice" type="button" onClick={() => setChoices((cur) => [...cur, ""])} style={pillBtn}>+ Add choice</button>
                 </div>
               </div>
             </Field>

@@ -81,7 +81,7 @@ export class ErrorBoundary extends Component<Props, State> {
               </p>
             </div>
 
-            <button
+            <button data-insights="reload-the-page"
               className="btn-primary"
               onClick={() => window.location.reload()}
             >

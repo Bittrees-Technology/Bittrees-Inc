@@ -416,7 +416,7 @@ function ProposalReview({ push, address }: { push: PushClient; address: `0x${str
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button className="btn-primary" disabled={!!busyId} onClick={() => approve(p)} style={{ opacity: busyId ? 0.6 : 1 }}>{busyId === p.id ? "Approving…" : "Approve"}</button>
-            <button onClick={() => reject(p)} disabled={!!busyId} style={{ ...createBtn, color: "#9a2a2a", borderColor: "#e2b8b8" }}>Reject</button>
+            <button data-insights="reject" onClick={() => reject(p)} disabled={!!busyId} style={{ ...createBtn, color: "#9a2a2a", borderColor: "#e2b8b8" }}>Reject</button>
           </div>
         </div>
       ))}
@@ -504,7 +504,7 @@ function CustomRoomManager({ push, address }: { push: PushClient; address: `0x${
                 <p style={{ fontFamily: "var(--font-serif)", fontSize: "0.95rem", fontWeight: 700, color: "var(--color-ink)", margin: 0 }}>{r.name}</p>
                 <p style={{ ...dim, margin: "0.15rem 0 0" }}>{r.blurb}</p>
               </div>
-              <button onClick={() => remove(r.key)} disabled={busy} style={{ ...createBtn, color: "#9a2a2a", borderColor: "#e2b8b8" }}>Remove</button>
+              <button data-insights="remove" onClick={() => remove(r.key)} disabled={busy} style={{ ...createBtn, color: "#9a2a2a", borderColor: "#e2b8b8" }}>Remove</button>
             </div>
           ))}
         </div>
@@ -644,7 +644,7 @@ function RolesAdmin({ address }: { address: `0x${string}` }) {
               {o.description && <span style={{ ...dim, margin: 0 }}>{o.description}</span>}
               {o.locked
                 ? <span style={{ ...dim, margin: 0, fontStyle: "italic" }}>built-in</span>
-                : <button onClick={() => destroy(o.label)} disabled={creating} aria-label={`Delete role ${o.label}`} style={{ background: "none", border: "none", cursor: "pointer", color: "#9a2a2a", fontSize: "0.78rem", padding: 0 }}>Delete</button>}
+                : <button data-insights="delete" onClick={() => destroy(o.label)} disabled={creating} aria-label={`Delete role ${o.label}`} style={{ background: "none", border: "none", cursor: "pointer", color: "#9a2a2a", fontSize: "0.78rem", padding: 0 }}>Delete</button>}
             </div>
           ))}
         </div>
@@ -752,9 +752,9 @@ function ModerationQueue({ address }: { address: `0x${string}` }) {
                     <strong style={{ color: hidden ? "#9a2a2a" : "var(--color-ink-muted)" }}>{status}</strong>
                   </span>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <button onClick={() => act(id, "approve")} disabled={!!busy} style={createBtn}>Approve</button>
-                    <button onClick={() => act(id, "remove")} disabled={!!busy} style={{ ...createBtn, color: "#9a2a2a", borderColor: "#e2b8b8" }}>Remove</button>
-                    <button onClick={() => act(id, "clear")} disabled={!!busy} style={{ ...createBtn, color: "var(--color-ink-dim)", borderColor: "var(--color-border)" }}>Clear</button>
+                    <button data-insights="approve" onClick={() => act(id, "approve")} disabled={!!busy} style={createBtn}>Approve</button>
+                    <button data-insights="remove" onClick={() => act(id, "remove")} disabled={!!busy} style={{ ...createBtn, color: "#9a2a2a", borderColor: "#e2b8b8" }}>Remove</button>
+                    <button data-insights="clear" onClick={() => act(id, "clear")} disabled={!!busy} style={{ ...createBtn, color: "var(--color-ink-dim)", borderColor: "var(--color-border)" }}>Clear</button>
                   </div>
                 </div>
                 {rec.preview && (

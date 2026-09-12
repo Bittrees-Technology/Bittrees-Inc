@@ -208,7 +208,7 @@ export default function Mint() {
               </a>
             )}
             <div>
-              <button className="btn-primary" onClick={() => { setPhase("idle"); setTxHash(undefined); }}>
+              <button data-insights="mint-more" className="btn-primary" onClick={() => { setPhase("idle"); setTxHash(undefined); }}>
                 Mint more
               </button>
             </div>
@@ -221,7 +221,7 @@ export default function Mint() {
         ) : !onMainnet ? (
           <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
             <p style={{ ...dim, margin: 0 }}>BGOV is on Ethereum mainnet.</p>
-            <button className="btn-primary" onClick={() => switchChain({ chainId: mainnet.id })}>
+            <button data-insights="switch-to-ethereum" className="btn-primary" onClick={() => switchChain({ chainId: mainnet.id })}>
               Switch to Ethereum
             </button>
           </div>
@@ -260,7 +260,7 @@ export default function Mint() {
             {insufficient && (
               <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.82rem", color: "var(--color-ink)", margin: 0 }}>
                 Not enough BTREE — you hold {fmtToken(btree.balance)}.{" "}
-                <a href="https://capital.bittrees.org" target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
+                <a data-insights="navigate-capitalbittreesorg/" href="https://capital.bittrees.org" target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
                   Get BTREE on Bittrees Capital ↗
                 </a>
               </p>
@@ -309,7 +309,7 @@ export default function Mint() {
         Your BGOV balance is your voting power across Bittrees governance. After minting, your shares
         appear in the next <Link to={ROUTES.proposals} style={{ color: "var(--color-primary-hover)" }}>proposal</Link>{" "}
         you vote on. Issued shares are tracked on{" "}
-        <a href="https://capital.bittrees.org" target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
+        <a data-insights="navigate-capitalbittreesorg/" href="https://capital.bittrees.org" target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
           Bittrees Capital
         </a>
         .

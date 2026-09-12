@@ -150,7 +150,7 @@ function Header() {
         {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginLeft: "auto" }}>
           <ConnectButton chainStatus="icon" showBalance={false} accountStatus="avatar" />
-          <button
+          <button data-insights="toggle-navigation"
             className="nav-mobile-toggle"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle navigation"

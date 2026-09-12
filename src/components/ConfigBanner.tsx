@@ -48,7 +48,7 @@ export function ConfigBanner() {
           VITE_WALLETCONNECT_PROJECT_ID
         </code>{" "}
         is not set. Wallet connect is disabled. Set a real project ID from{" "}
-        <a
+        <a data-insights="navigate-cloudwalletconnectcom/"
           href="https://cloud.walletconnect.com"
           target="_blank"
           rel="noreferrer"
