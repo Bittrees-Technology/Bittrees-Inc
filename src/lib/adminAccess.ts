@@ -1,3 +1,4 @@
+import {useAuthorityAccess} from './authorityAccess';
 import { useIsAdmin } from "./snapshot";
 import { useCommunity, useUserRoles } from "./community";
 
@@ -23,8 +24,12 @@ export function useAdminAccess(address?: string): AdminLevel {
   const isSpaceAdmin = useIsAdmin(address);
   const roles = useUserRoles(address);
   const { data: authority } = useCommunity();
+  const policy=useAuthorityAccess(address);
   if (!address) return "none";
-  if (authority?.authorizationMode === "root-policy") return address.toLowerCase() === "0x1b6c450fadb7c77191f152473fc2f79dc515fa77" ? "full" : "none";
+  if (authority?.authorizationMode === "root-policy" || authority?.authorizationMode === "controller-policy-on-activation") {
+    if(policy.isError || !policy.data)return "none";
+    if(policy.data.configured)return policy.data.permissions.includes('community.roles.manage')||policy.data.permissions.includes('rooms.manage')?'full':policy.data.permissions.includes('community.moderation.manage')?'moderation':'none';
+  }
   if (isSpaceAdmin || address.toLowerCase() === SUPER_ADMIN || roles.some((r) => FULL_ROLE_RE.test(r.label))) return "full";
   if (roles.some((r) => MOD_ROLE_RE.test(r.label))) return "moderation";
   return "none";
@@ -37,7 +42,10 @@ const PROPOSE_ROLE_RE = /^(operations|partner|junior partner|associate)$/i;
 export function useCanProposeRoom(address?: string): boolean {
   const level = useAdminAccess(address);
   const roles = useUserRoles(address);
+  const policy=useAuthorityAccess(address);
   if (!address) return false;
+  if(policy.data?.configured)return policy.data.permissions.includes("rooms.propose");
+  if(policy.isError)return false;
   if (level === "full") return true;
   return roles.some((r) => PROPOSE_ROLE_RE.test(r.label));
 }
