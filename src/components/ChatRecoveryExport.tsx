@@ -39,7 +39,7 @@ export function ChatRecoveryExport() {
       if (password !== confirmation) throw new Error('The passphrases do not match.');
       assertExportUnchanged(localStorage, review);
       const check = await proveExportWallet(wallet, address, window.location.origin, ensure, async (args, chain) => {
-        if (await verifyMessage(args)) return true;
+        try { if (await verifyMessage(args)) return true; } catch { /* Contract signatures can have a different encoding. */ }
         if (!verifier || verifier.chain.id !== chain) return false;
         return verifier.verifyMessage(args);
       });

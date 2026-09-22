@@ -7,6 +7,7 @@ const wallet = { getAddresses: async () => address ? [address] : [], getChainId:
   signMessage: async ({ message }: { message: string }) => {
     if ((window as any).rejectProof) throw new Error('Proof rejected');
     if ((window as any).delayProof) await new Promise(resolve => { (window as any).finishProof = resolve; });
+    if ((window as any).contractProof) return '0x0102';
     return account.signMessage({ message });
   } };
 (window as any).testWallet = account.address;
@@ -16,4 +17,5 @@ export function useAccount() {
   return { address: value, chainId: 1 };
 }
 export function useWalletClient() { return { data: wallet }; }
-export function usePublicClient() { return undefined; }
+const verifier = { chain: { id: 1 }, verifyMessage: async () => { (window as any).contractVerificationCalled = true; return !!(window as any).contractProof; } };
+export function usePublicClient() { return verifier; }

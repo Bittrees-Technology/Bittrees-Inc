@@ -60,3 +60,23 @@ test('shared settings are separately opted in and invalid source records remain 
   await expect(page.getByRole('alert')).toBeVisible();
   expect(await page.evaluate(owner => localStorage.getItem(`bittrees.dm.saved.${owner}`), owner)).toBe('{bad');
 });
+
+test('source edits while wallet approval is pending cancel the encrypted download', async ({ page }) => {
+  const owner = await prepare(page); let downloads = 0; page.on('download', () => downloads++);
+  await page.evaluate(() => { (window as any).delayProof = true; });
+  await page.getByRole('button', { name: 'Verify wallet and download' }).click();
+  await page.waitForFunction(() => !!(window as any).finishProof);
+  await page.evaluate(owner => { localStorage.setItem(`bittrees.dm.saved.${owner}`, '[]'); (window as any).finishProof(); }, owner);
+  await expect(page.getByRole('alert')).toContainText('Local data changed');
+  await expect(page.getByLabel('Confirm passphrase', { exact: true })).toHaveValue('');
+  expect(downloads).toBe(0);
+});
+
+test('contract signature encoding reaches the connected-chain verifier', async ({ page }) => {
+  await prepare(page);
+  await page.evaluate(() => { (window as any).contractProof = true; });
+  const pending = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Verify wallet and download' }).click();
+  await pending;
+  expect(await page.evaluate(() => (window as any).contractVerificationCalled)).toBe(true);
+});
