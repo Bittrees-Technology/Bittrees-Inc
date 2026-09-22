@@ -21,13 +21,27 @@ export function guardPushWallet(wallet: WalletClient, owner: string, ensureCurre
     const address = typeof account === 'string' ? account : (account as { address?: unknown } | null)?.address;
     if (typeof address !== 'string' || address.toLowerCase() !== expected) throw new PushSessionChangedError();
   };
+  const recoveryProvider = { async request({ method, params }: { method: string; params?: unknown[] }) {
+    const ownerIndex = method === 'eth_decrypt' ? 1 : 0;
+    if (!['eth_decrypt', 'eth_getEncryptionPublicKey'].includes(method) || !Array.isArray(params)
+      || params.length !== ownerIndex + 1 || typeof params[ownerIndex] !== 'string'
+      || (params[ownerIndex] as string).toLowerCase() !== expected
+      || (method === 'eth_decrypt' && (typeof params[0] !== 'string' || params[0].length > 512 * 1024))) {
+      throw new Error('Unsupported Push key recovery request.');
+    }
+    await check(); ensureCurrent();
+    const result = await wallet.request({ method, params } as any);
+    await check(); return result;
+  } };
   const guarded = {
     ...wallet,
+    // Legacy SDK key recovery otherwise falls back to an unrelated injected wallet.
+    provider: { provider: recoveryProvider },
     async signMessage(args) {
-      checkAccount(args.account); await check(); const signature = await wallet.signMessage(args); await check(); return signature;
+      checkAccount(args.account); await check(); ensureCurrent(); const signature = await wallet.signMessage(args); await check(); return signature;
     },
     async signTypedData(args) {
-      checkAccount(args.account); await check(); const signature = await wallet.signTypedData(args); await check(); return signature;
+      checkAccount(args.account); await check(); ensureCurrent(); const signature = await wallet.signTypedData(args); await check(); return signature;
     },
     async getChainId() { await check(); return chain!; },
   } as WalletClient;
