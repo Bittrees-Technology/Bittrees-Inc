@@ -3,6 +3,7 @@ export const CONSTANTS = { ENV: { PROD: 'prod' } };
 (window as any).sdkOptions = [];
 export const PushAPI = { initialize: async (wallet: any, options: any) => {
   (window as any).sdkOptions.push(options);
+  if ((window as any).legacyRecovery) await wallet.provider.provider.request({ method: 'eth_decrypt', params: ['synthetic-cipher', wallet.account.address] });
   await wallet.signMessage({ account: wallet.account.address, message: 'synthetic recovery' });
   const call = (name: string) => async (..._args: unknown[]) => {
     (window as any).sdkCalls.push(name);

@@ -7,6 +7,11 @@ const watchers = new Set<() => void>();
 function wallet() {
   return { account: { address: state.address }, chain: { id: state.chainId },
     getAddresses: async () => providerAddress ? [providerAddress] : [], getChainId: async () => state.chainId,
+    async request({ method }: { method: string }) {
+      ((window as any).recoveryCalls ??= []).push(method);
+      if ((window as any).delayRecovery) await new Promise(resolve => { (window as any).finishRecovery = resolve; });
+      return 'synthetic-key';
+    },
     async signMessage(_args: unknown) {
       if ((window as any).delaySignature) await new Promise(resolve => { (window as any).finishSignature = resolve; });
       return '0x01';

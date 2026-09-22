@@ -45,7 +45,7 @@ export function initPush(wallet: WalletClient, owner: string) {
     const { PushAPI, CONSTANTS } = await import('@pushprotocol/restapi');
     ensureCurrent();
     // Always recover through the connected signer. Never initialize from plaintext browser storage.
-    const raw = await PushAPI.initialize(guarded as any, { env: CONSTANTS.ENV.PROD });
+    const raw = await PushAPI.initialize(guarded as any, { env: CONSTANTS.ENV.PROD, autoUpgrade: false });
     ensureCurrent(); await guarded.getChainId(); ensureCurrent();
     if (raw.account.toLowerCase() !== owner.toLowerCase() || !raw.decryptedPgpPvtKey) throw new Error('Push did not recover this wallet’s room keys.');
     retireRecoveredPushKey(localStorage, owner, raw.decryptedPgpPvtKey);

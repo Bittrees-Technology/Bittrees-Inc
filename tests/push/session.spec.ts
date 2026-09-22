@@ -4,7 +4,7 @@ test('fresh recovery removes only the matching old key and reload requires enabl
   await page.evaluate(() => { localStorage.setItem(`bittrees.push.pgp.${(window as any).walletA}`, 'synthetic-key'); localStorage.setItem('keep', 'original'); });
   await page.getByRole('button', { name: 'Enable', exact: true }).click(); await expect(page.getByTestId('status')).toHaveText('ready');
   expect(await page.evaluate(() => localStorage.getItem(`bittrees.push.pgp.${(window as any).walletA}`))).toBeNull();
-  expect(await page.evaluate(() => (window as any).sdkOptions)).toEqual([{ env: 'prod' }]);
+  expect(await page.evaluate(() => (window as any).sdkOptions)).toEqual([{ env: 'prod', autoUpgrade: false }]);
   await page.getByRole('button', { name: 'Toggle view' }).click(); await page.getByRole('button', { name: 'Toggle view' }).click();
   await expect(page.getByTestId('status')).toHaveText('ready');
   await page.reload(); await expect(page.getByTestId('status')).toHaveText('idle'); expect(await page.evaluate(() => localStorage.getItem('keep'))).toBe('original');
@@ -52,4 +52,17 @@ test('provider account is rechecked before sending even without an account-chang
   await page.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.getByTestId('status')).toHaveText('idle');
   expect(await page.evaluate(() => (window as any).sdkCalls)).toEqual([]);
+});
+
+test('legacy key recovery uses the bound wallet and does not invoke another injected wallet', async ({ page }) => {
+  await page.evaluate(() => { (window as any).legacyRecovery = true; (window as any).ethereum = { request: () => { throw new Error('Wrong provider'); } }; });
+  await page.getByRole('button', { name: 'Enable', exact: true }).click(); await expect(page.getByTestId('status')).toHaveText('ready');
+  expect(await page.evaluate(() => (window as any).recoveryCalls)).toEqual(['eth_decrypt']);
+});
+test('disconnect during legacy recovery cannot restore a client or retire its old key', async ({ page }) => {
+  await page.evaluate(() => { (window as any).legacyRecovery = true; (window as any).delayRecovery = true; localStorage.setItem(`bittrees.push.pgp.${(window as any).walletA}`, 'synthetic-key'); });
+  await page.getByRole('button', { name: 'Enable', exact: true }).click(); await page.waitForFunction(() => !!(window as any).finishRecovery);
+  await page.evaluate(() => { (window as any).disconnectWallet(); (window as any).connectA(); (window as any).finishRecovery(); });
+  await expect(page.getByTestId('status')).toHaveText('idle');
+  expect(await page.evaluate(() => localStorage.getItem(`bittrees.push.pgp.${(window as any).walletA}`))).toBe('synthetic-key');
 });

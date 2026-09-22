@@ -37,3 +37,17 @@ test('signer cannot override the session account in a message or typed-data requ
   await assert.rejects(guarded.signTypedData({ account: `0x${'b'.repeat(40)}` as `0x${string}`, domain: { name: 'test' }, types: { Test: [{ name: 'value', type: 'string' }] }, primaryType: 'Test', message: { value: 'x' } }));
   assert.equal(signed, false);
 });
+
+test('legacy recovery permits only the bound owner and recovery RPC methods', async () => {
+  const raw = wallet(); let calls = 0; raw.request = (async () => { calls++; return 'synthetic-key'; }) as any;
+  const guarded = guardPushWallet(raw, owner, () => {}) as any;
+  assert.equal(await guarded.provider.provider.request({ method: 'eth_decrypt', params: ['cipher', owner] }), 'synthetic-key');
+  await assert.rejects(guarded.provider.provider.request({ method: 'eth_sendTransaction', params: [{}] }), /Unsupported/);
+  await assert.rejects(guarded.provider.provider.request({ method: 'eth_decrypt', params: ['cipher', `0x${'b'.repeat(40)}`] }), /Unsupported/);
+  assert.equal(calls, 1);
+});
+test('legacy recovery result is rejected after a silent account change', async () => {
+  const raw = wallet(); raw.request = (async () => { raw.getAddresses = async () => []; return 'synthetic-key'; }) as any;
+  const guarded = guardPushWallet(raw, owner, () => {}) as any;
+  await assert.rejects(guarded.provider.provider.request({ method: 'eth_decrypt', params: ['cipher', owner] }), /session changed/);
+});
