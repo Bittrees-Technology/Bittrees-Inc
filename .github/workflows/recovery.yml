@@ -1,0 +1,25 @@
+name: Messenger recovery checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  recovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: sudo apt-get update && sudo apt-get install -y redis-server
+      - run: npm ci --ignore-scripts
+      - run: npm run test:unit
+      - run: npm run test:release-gate
+      - run: node --test scripts/signed-registry.test.mjs scripts/redis-atomic.test.mjs scripts/roles-feed.test.mjs
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:recovery-browser
