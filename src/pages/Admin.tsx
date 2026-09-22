@@ -1,3 +1,5 @@
+import type { WalletClient } from "viem";
+import { usePush, usePushSessionKey } from "../lib/usePush";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { getAddress, parseUnits, isAddress } from "viem";
@@ -6,7 +8,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchSpaceSettings, updateSpaceSettings } from "../lib/snapshot";
 import { useAdminAccess, type AdminLevel } from "../lib/adminAccess";
-import { BGOV_ROOMS, SAFE_ROOMS, ROOM_ADMINS, initPush, createGatedGroup, gateUrl, gateLabel, type PushRoom, type PushClient, type RoomGate, type RoomRule } from "../lib/push";
+import { BGOV_ROOMS, SAFE_ROOMS, ROOM_ADMINS, createGatedGroup, gateUrl, gateLabel, type PushRoom, type PushClient, type RoomGate, type RoomRule } from "../lib/push";
 import { useRoomRegistry, saveRoomChatId, saveCustomRoom, deleteCustomRoom, approveRoomProposal, rejectRoomProposal, type RoomProposal } from "../lib/rooms";
 import { assignRole, unassignRole, createRole, deleteRole, selectableRoles, useCommunity, moderateItem, publishEncKey, TIER_ROLES } from "../lib/community";
 import { useTopics, CONTRIB_COMMUNITY, EASSCAN_VIEW } from "../lib/forum";
@@ -69,6 +71,7 @@ const ADMIN_TABS = [
 type AdminTabKey = (typeof ADMIN_TABS)[number]["key"];
 
 function AdminConsole({ address, level }: { address: `0x${string}`; level: AdminLevel }) {
+  const pushSessionKey = usePushSessionKey();
   // Moderators see only the Moderation tab; full admins see everything.
   const tabs = level === "moderation" ? ADMIN_TABS.filter((t) => t.key === "moderation") : ADMIN_TABS;
   const [tab, setTab] = useState<AdminTabKey>(tabs[0].key);
@@ -80,7 +83,7 @@ function AdminConsole({ address, level }: { address: `0x${string}`; level: Admin
         ))}
       </div>
       {tab === "settings" && <SpaceSettings address={address} />}
-      {tab === "rooms" && <CommunityRoomsAdmin address={address} />}
+      {tab === "rooms" && <CommunityRoomsAdmin key={pushSessionKey} address={address} />}
       {tab === "roles" && <RolesAdmin address={address} />}
       {tab === "moderation" && <ModerationQueue address={address} />}
       {tab === "applications" && <ContributorApplications />}
@@ -239,11 +242,12 @@ function SpaceSettings({ address }: { address: `0x${string}` }) {
 
 /* ── Community rooms — one-click creation per tier + ENS subname ──────────── */
 function CommunityRoomsAdmin({ address }: { address: `0x${string}` }) {
-  const { data: walletClient } = useWalletClient();
+  const push = usePush();
+  const walletClient = push.wallet;
+  const pushClient = push.client;
+  const status = push.status;
   const { data: registry } = useRoomRegistry();
   const qc = useQueryClient();
-  const pushRef = useRef<PushClient | null>(null);
-  const [status, setStatus] = useState<"idle" | "enabling" | "ready" | "error">("idle");
   const [error, setError] = useState<string>();
   const [created, setCreated] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
@@ -252,25 +256,14 @@ function CommunityRoomsAdmin({ address }: { address: `0x${string}` }) {
   // Registry (runtime, Vercel KV) chatIds win over env (build-time) fallbacks.
   const rooms = [...BGOV_ROOMS, ...SAFE_ROOMS].map((r) => ({ ...r, chatId: registry?.chatIds?.[r.key] ?? r.chatId }));
 
-  async function enable() {
-    if (!walletClient) return;
-    setStatus("enabling");
-    setError(undefined);
-    try {
-      pushRef.current = await initPush(walletClient, address);
-      setStatus("ready");
-    } catch (e) {
-      setStatus("error");
-      setError(humanError(e));
-    }
-  }
+  async function enable() { setError(undefined); await push.enable(); }
 
   async function create(room: PushRoom) {
-    if (!pushRef.current) return;
+    if (!pushClient) return;
     setBusyKey(room.key);
     setError(undefined);
     try {
-      const chatId = await createGatedGroup(pushRef.current, room, address);
+      const chatId = await createGatedGroup(pushClient, room, address);
       // Publish to the registry (Vercel KV) → live instantly, no redeploy. If the
       // registry isn't configured, fall back to the manual env-var instructions.
       let published = false;
@@ -314,11 +307,11 @@ function CommunityRoomsAdmin({ address }: { address: `0x${string}` }) {
 
       {status !== "ready" ? (
         <div className="card" style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-          <p style={{ ...dim, margin: 0 }}>Enabling asks for a one-time signature (no gas).</p>
+          <p style={{ ...dim, margin: 0 }}>Enabling recovers your room keys for this wallet session (no gas). Reloading or changing wallets requires enabling again. Actions already sent may finish; check the registry before retrying.</p>
           <button className="btn-primary" disabled={status === "enabling"} onClick={enable} style={{ opacity: status === "enabling" ? 0.6 : 1 }}>
             {status === "enabling" ? "Confirm in wallet…" : "Enable room creation"}
           </button>
-          {status === "error" && error && <span role="alert" style={{ ...dim, color: "var(--color-ink)" }}>{error}</span>}
+          {status === "error" && (error || push.error) && <span role="alert" style={{ ...dim, color: "var(--color-ink)" }}>{error || push.error}</span>}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
@@ -358,15 +351,14 @@ function CommunityRoomsAdmin({ address }: { address: `0x${string}` }) {
           {error && <p role="alert" style={{ ...dim, color: "var(--color-ink)" }}>{error}</p>}
         </div>
       )}
-      {status === "ready" && pushRef.current && <ProposalReview push={pushRef.current} address={address} />}
-      {status === "ready" && pushRef.current && <CustomRoomManager push={pushRef.current} address={address} />}
+      {status === "ready" && pushClient && <ProposalReview push={pushClient} address={address} walletClient={walletClient} />}
+      {status === "ready" && pushClient && <CustomRoomManager push={pushClient} address={address} walletClient={walletClient} />}
     </section>
   );
 }
 
 /* ── Pending room proposals — review queue for role-holder submissions ─────── */
-function ProposalReview({ push, address }: { push: PushClient; address: `0x${string}` }) {
-  const { data: walletClient } = useWalletClient();
+function ProposalReview({ push, address, walletClient }: { push: PushClient; address: `0x${string}`; walletClient?: WalletClient }) {
   const { data: registry } = useRoomRegistry();
   const qc = useQueryClient();
   const proposals: RoomProposal[] = registry?.proposals ?? [];
@@ -426,8 +418,7 @@ function ProposalReview({ push, address }: { push: PushClient; address: `0x${str
 }
 
 /* ── Custom rooms — admin-defined, with custom gatekeeping ────────────────── */
-function CustomRoomManager({ push, address }: { push: PushClient; address: `0x${string}` }) {
-  const { data: walletClient } = useWalletClient();
+function CustomRoomManager({ push, address, walletClient }: { push: PushClient; address: `0x${string}`; walletClient?: WalletClient }) {
   const { data: registry } = useRoomRegistry();
   const { data: community } = useCommunity();
   const qc = useQueryClient();

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, NavLink, Link } from "react-router";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { watchPushSession } from "./lib/pushRuntime";
 import { useAccount } from "wagmi";
 import { useAdminAccess } from "./lib/adminAccess";
 import Overview from "./pages/Overview";
@@ -32,6 +33,7 @@ const NAV = [
 ];
 
 export default function App() {
+  useEffect(watchPushSession, []);
   return (
     <BrowserRouter>
       <div className="min-h-screen flex flex-col" style={{ background: "var(--color-bg)" }}>
