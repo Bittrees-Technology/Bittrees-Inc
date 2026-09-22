@@ -1,3 +1,4 @@
+import type { WalletClient } from "viem";
 import { ChatRecoveryExport } from "../components/ChatRecoveryExport";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,7 +43,7 @@ import {
   type RoomMember,
   type RoomRole,
 } from "../lib/push";
-import { usePush } from "../lib/usePush";
+import { usePush, usePushSessionKey } from "../lib/usePush";
 import { useRoomRegistry, setRoomIcon } from "../lib/rooms";
 import { useCanProposeRoom } from "../lib/adminAccess";
 import { ProposeRoom } from "../components/ProposeRoom";
@@ -152,7 +153,7 @@ function MessengerHome({ xmtp }: { xmtp: ReturnType<typeof useXmtp> }) {
         <button data-insights="all-chats" onClick={backToChats} style={{ ...linkBtn, alignSelf: "flex-start", fontSize: "0.85rem", color: "var(--color-primary-hover)", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
           <IconBack /> All chats
         </button>
-        <CommunityGroups />
+        <ScopedCommunityGroups />
       </div>
     );
   }
@@ -1019,6 +1020,11 @@ function useRoomAccess(rooms: PushRoom[], address?: string) {
 }
 
 /* ── Community rooms (Push, token-gated) ────────────────────────────────── */
+function ScopedCommunityGroups() {
+  const key = usePushSessionKey();
+  return <CommunityGroups key={key} />;
+}
+
 function CommunityGroups() {
   const { address } = useAccount();
   const { data: vpData } = useVotingPowerNow(address);
@@ -1036,7 +1042,7 @@ function CommunityGroups() {
   const allRooms: PushRoom[] = [...bgovRooms, ...safeRooms, ...customRooms];
   const canPropose = useCanProposeRoom(address);
 
-  const push = usePush(); // shared, signature-persistent (survives tab switch + reload)
+  const push = usePush(); // Memory-only, bound to the current wallet connection.
   const qc = useQueryClient();
   const [error, setError] = useState<string>();
   const [openRoom, setOpenRoom] = useState<PushRoom | null>(null);
@@ -1054,10 +1060,10 @@ function CommunityGroups() {
   // list can pin joined rooms to the top and flag unread (only runs once Push is ready).
   const liveChatIds = allRooms.map((r) => r.chatId).filter(Boolean).join(",");
   const joinedQ = useQuery({
-    queryKey: ["joined-chats", liveChatIds],
+    queryKey: ["joined-chats", push.sessionKey, liveChatIds],
     enabled: push.status === "ready" && !!liveChatIds && !!push.client,
     staleTime: 20_000,
-    queryFn: () => joinedChats(push.client),
+    queryFn: () => { if (!push.client) throw new Error("Enable rooms first."); return joinedChats(push.client); },
   });
   const joinedMap = joinedQ.data ?? {};
   const isJoined = (r: PushRoom) => !!r.chatId && r.chatId in joinedMap;
@@ -1096,7 +1102,7 @@ function CommunityGroups() {
       if (openRoom?.key === room.key) { setOpenRoom(null); setMessages([]); setOlderCursor(undefined); }
       // Optimistically drop it from the joined map so the button flips to Join at once,
       // then refetch to reconcile with Push.
-      qc.setQueryData<Record<string, number>>(["joined-chats", liveChatIds], (old) => {
+      qc.setQueryData<Record<string, number>>(["joined-chats", push.sessionKey, liveChatIds], (old) => {
         if (!old || !room.chatId) return old;
         const next = { ...old }; delete next[room.chatId]; return next;
       });
@@ -1173,8 +1179,8 @@ function CommunityGroups() {
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: "0.85rem", maxWidth: "560px" }}>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9rem", color: "var(--color-ink-muted)", lineHeight: 1.6, margin: 0 }}>
           Community rooms are token-gated by your Bittrees holdings and run on Push — decentralized,
-          wallet-native group chat. Enabling asks for a one-time signature; after that it stays
-          signed in across reloads. No gas.
+          wallet-native group chat. Enabling recovers your room keys for this wallet session.
+          Reloading or changing wallets requires enabling again. No gas. Actions already sent may finish; check history or membership before retrying.
         </p>
         <div>
           <button className="btn-primary" onClick={push.enable} disabled={push.status === "enabling"} style={{ opacity: push.status === "enabling" ? 0.6 : 1 }}>
@@ -1198,7 +1204,7 @@ function CommunityGroups() {
           </span>
         </div>
         {push.client && openRoom.chatId && address && (
-          <ManageMembers push={push.client} chatId={openRoom.chatId} me={address} roomKey={openRoom.key} icon={openRoom.icon} />
+          <ManageMembers key={openRoom.chatId} walletClient={push.wallet} push={push.client} chatId={openRoom.chatId} me={address} roomKey={openRoom.key} icon={openRoom.icon} />
         )}
         <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {olderCursor && (
@@ -1349,7 +1355,7 @@ function RoomRow({ room, joined, unread, busy, onOpen, pinned = false, menuOpen 
 }
 
 /** Room-admin panel: set the room avatar, add a wallet as Member/Admin, or remove one. */
-function ManageMembers({ push, chatId, me, roomKey, icon }: { push: PushClient; chatId: string; me: string; roomKey: string; icon?: string }) {
+function ManageMembers({ push, chatId, me, roomKey, icon, walletClient }: { push: PushClient; chatId: string; me: string; roomKey: string; icon?: string; walletClient?: WalletClient }) {
   const [members, setMembers] = useState<RoomMember[]>([]);
   const [show, setShow] = useState(false);
   const [addr, setAddr] = useState("");
@@ -1358,14 +1364,13 @@ function ManageMembers({ push, chatId, me, roomKey, icon }: { push: PushClient; 
   const [err, setErr] = useState<string>();
   const [iconDraft, setIconDraft] = useState(icon ?? "");
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
   const qc = useQueryClient();
 
   const load = useCallback(async () => {
     setMembers(await roomMembers(push, chatId));
   }, [push, chatId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load().catch(e => setErr(describePushError(e))); }, [load]);
   useEffect(() => { setIconDraft(icon ?? ""); }, [icon]);
 
   const amAdmin = members.some((m) => m.wallet === me.toLowerCase() && m.role === "ADMIN");
