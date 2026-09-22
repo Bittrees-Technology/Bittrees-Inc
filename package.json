@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "release:gate": "node scripts/release-gate.mjs",
     "test:release-gate": "node --test scripts/release-gate.test.mjs",
-    "test:unit": "node --test src/lib/routeMeta.test.ts"
+    "test:unit": "node --test src/lib/routeMeta.test.ts src/lib/chatRecoveryExport.test.ts",
+    "test:recovery-browser": "playwright test -c playwright.recovery.config.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
@@ -29,6 +30,7 @@
     "wagmi": "2.15.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.0",
     "@tailwindcss/vite": "4.1.8",
     "@tanstack/react-query-devtools": "5.75.5",
     "@types/react": "19.1.5",

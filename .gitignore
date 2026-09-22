@@ -19,3 +19,7 @@ dist-ssr/
 .idea/
 .vercel
 *.tsbuildinfo
+
+# Browser test output
+test-results/
+playwright-report/
