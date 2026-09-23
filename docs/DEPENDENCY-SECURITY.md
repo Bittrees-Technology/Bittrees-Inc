@@ -18,6 +18,10 @@ Transitive overrides are bounded to the affected major/range, except Axios which
 
 The fresh npm audit changed from40 affected packages (10high,23moderate,7low) to26 (0high/critical,20moderate,6low). These counts include inherited dependency findings; they are not counts of separately demonstrated exploitable application paths. Relevant upstream patch references include [Vite filesystem protection](https://github.com/advisories/GHSA-fx2h-pf6j-xcff), [React Router](https://github.com/advisories/GHSA-qwww-vcr4-c8h2), [ws resource limits](https://github.com/advisories/GHSA-96hv-2xvq-fx4p), [qs round-trip parsing](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g), and [Joi prototype handling](https://github.com/advisories/GHSA-6w3j-5fw6-r9vr). Some reports concern optional/server/development paths; an audit count alone does not establish exposure of this static deployment.
 
+## Production installation
+
+Vercel explicitly runs `npm ci --ignore-scripts`, matching CI and honoring the committed npm lockfile and scoped overrides. The build applies the reviewed Push patch through `prebuild`. A prior project-level `yarn install` setting ignored those overrides and resolved a different dependency graph; a successful deployment alone did not prove the dependency fixes shipped. Verify the production build log uses the declared clean npm install and verify the resulting application before accepting a dependency rollout.
+
 ## Required checks
 
 `npm run test:dependency-audit` runs `npm audit --audit-level=high` after the clean CI install. High/critical findings or audit failures stop the job. Moderate/low reports remain visible; there is no advisory suppression or exception list. Passing this threshold is not a declaration that the remaining findings are accepted for launch.
