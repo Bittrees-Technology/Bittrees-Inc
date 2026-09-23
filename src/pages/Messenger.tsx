@@ -98,7 +98,13 @@ export default function Messenger() {
           <ConnectButton chainStatus="none" showBalance={false} />
         </div>
       ) : (
-        <DirectMessages />
+        <>
+          <DirectMessages />
+          <details className="card" data-insights-ignore="true">
+            <summary>Export local data to Chat</summary>
+            <ChatRecoveryExport />
+          </details>
+        </>
       )}
     </div>
   );
@@ -489,7 +495,6 @@ function SettingsView({ xmtp }: { xmtp: ReturnType<typeof useXmtp> }) {
         onToggle={() => setReadReceipts(!settings.readReceipts)}
       />
       <SyncSection owner={xmtp.selfAddress} />
-      <ChatRecoveryExport />
       <div>
         <p className="text-label" style={{ marginBottom: "0.4rem" }}>Blocked ({blocked.length})</p>
         {blocked.length === 0 ? (

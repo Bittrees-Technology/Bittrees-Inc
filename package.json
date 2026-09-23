@@ -16,7 +16,8 @@
     "postinstall": "patch-package --error-on-fail",
     "prebuild": "patch-package --error-on-fail",
     "pretest:push-sdk-browser": "patch-package --error-on-fail",
-    "test:push-sdk-browser": "playwright test -c playwright.push-sdk.config.ts"
+    "test:push-sdk-browser": "playwright test -c playwright.push-sdk.config.ts",
+    "test:app-recovery": "playwright test -c playwright.app-recovery.config.ts"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",

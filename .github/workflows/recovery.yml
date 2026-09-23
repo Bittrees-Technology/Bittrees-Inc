@@ -22,6 +22,7 @@ jobs:
       - run: node --test scripts/signed-registry.test.mjs scripts/redis-atomic.test.mjs scripts/roles-feed.test.mjs
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - run: npm run test:app-recovery
       - run: npm run test:recovery-browser
       - run: npm run test:push-browser
       - run: npm run test:push-sdk-browser
