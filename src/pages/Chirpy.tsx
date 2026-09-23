@@ -1,12 +1,6 @@
 /**
- * Chirpy — info / landing page for the Bittrees chat app, served at
- * gov.bittrees.org/chirpy. Links out to the live web app and the desktop
- * downloads (published as GitHub Releases on the chirpy repo). Org-agnostic
- * product, so the copy stays product-first with a light Bittrees framing.
- *
- * Applies its own title/description/canonical/OG tags via useRouteMeta —
- * this is a client-rendered SPA, so index.html's site-wide governance meta
- * would otherwise leak onto this route (and social-share previews).
+ * Chat product preview. Keep the existing /chirpy route and application/repository
+ * links usable until launch acceptance and the infrastructure rename are complete.
  */
 
 import { Link } from "react-router";
@@ -15,37 +9,37 @@ import { useRouteMeta } from "../lib/routeMeta";
 
 const CHIRPY_WEB = "https://chirpy.bittrees.org";
 const CHIRPY_REPO = "https://github.com/Bittrees-Technology/chirpy";
-const PAGE_TITLE = "Chirpy — Wallet-native chat for any community | Bittrees";
+const PAGE_TITLE = "Chat — Messaging and connected email preview | Bittrees";
 const PAGE_DESCRIPTION =
-  "Private DMs and token-gated rooms in one wallet-native app. Live on the web, macOS and iOS on the way. Open source by Bittrees.";
+  "Explore Chat: wallet messaging and connected Bittrees Mail. Public launch, email forwarding and device recovery verification are still in progress.";
 
 const FEATURES: { title: string; body: string }[] = [
   {
-    title: "Wallet-native, no account",
-    body: "Your wallet is your identity. Connect and you're in — no email, no password, no sign-up.",
+    title: "Your wallet, your public profile",
+    body: "Connect your wallet for messaging. You choose which profile details to publish; connecting a mailbox does not make your email address public.",
   },
   {
-    title: "1:1 DMs + token-gated rooms",
-    body: "Private direct messages plus community rooms gated by tokens, NFTs, Safe membership, ENS, or roles.",
+    title: "Connected Bittrees Mail",
+    body: "Read, send and reply using a mailbox you authorize. Wallet-to-email and email-to-wallet forwarding are not available yet.",
   },
   {
-    title: "Org-agnostic",
-    body: "Ships with no organization baked in. Start personal, then import an org (Bittrees Inc, Research) or create your own.",
+    title: "Community conversations",
+    body: "Explore direct messages and community rooms. Room access depends on membership and community rules. Existing Governance conversations remain available in Messenger while migration is verified.",
   },
   {
-    title: "Your chats follow you",
-    body: "DMs are tied to your wallet and travel with you across every org and device; rooms stay scoped to their community.",
+    title: "Keep your local data",
+    body: "Review and transfer contacts, local notes and selected preferences with an encrypted recovery file. Message history and recovery on another device need separate verification; keep access to your original app.",
   },
 ];
 
 const PLATFORMS: { name: string; status: string; cta: string; href: string; primary?: boolean }[] = [
-  { name: "Web", status: "Live now — runs in any browser", cta: "Open Chirpy", href: CHIRPY_WEB, primary: true },
-  { name: "macOS desktop", status: "In development — no build published yet", cta: "View progress", href: CHIRPY_REPO },
-  { name: "iOS", status: "Coming to the App Store", cta: "On the roadmap", href: CHIRPY_REPO },
+  { name: "Web preview", status: "Available for testing — launch verification is in progress", cta: "Open Chat preview", href: CHIRPY_WEB, primary: true },
+  { name: "macOS desktop", status: "In development — signed public release pending", cta: "View progress", href: CHIRPY_REPO },
+  { name: "iOS", status: "In development — release and device verification pending", cta: "View progress", href: CHIRPY_REPO },
 ];
 
 function ChirpMark() {
-  // A simple chat-bubble glyph in Bittrees orange — chat + "chirp".
+  // Existing chat-bubble mark in Bittrees orange.
   return (
     <span
       aria-hidden
@@ -91,7 +85,7 @@ export default function Chirpy() {
           <div>
             <p className="text-label" style={{ margin: 0 }}>Bittrees · Chat</p>
             <h1 className="text-display" style={{ margin: 0 }}>
-              Chirpy — wallet-native chat for any community
+              Chat — messaging and connected email
             </h1>
           </div>
         </div>
@@ -105,22 +99,23 @@ export default function Chirpy() {
             maxWidth: "640px",
           }}
         >
-          Private DMs and token-gated rooms, no email or password required — live in the
-          browser today, with macOS and iOS on the way.
+          Wallet messaging and connected Bittrees Mail in one app. Chat is available as
+          a web preview while email forwarding, conversation continuity and device
+          verification are completed before public launch.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
           <a className="btn-primary" href={CHIRPY_WEB} target="_blank" rel="noreferrer">
-            Open the web app ↗
+            Open Chat preview ↗
           </a>
           <a className="btn-ghost" href={CHIRPY_REPO} target="_blank" rel="noreferrer">
-            Chirpy on GitHub ↗
+            Chat on GitHub ↗
           </a>
         </div>
       </header>
 
       {/* Platforms */}
       <section style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <h2 className="text-title">Get Chirpy</h2>
+        <h2 className="text-title">Try Chat</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
           {PLATFORMS.map((p) => (
             <div key={p.name} className="card" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -143,7 +138,7 @@ export default function Chirpy() {
           ))}
         </div>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.76rem", color: "var(--color-ink-dim)", margin: 0 }}>
-          Signed, auto-updating desktop builds are on the roadmap and not published yet — track
+          Public native releases will follow signing, update and device verification. Track
           progress on{" "}
           <a href={CHIRPY_REPO} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
             GitHub ↗
@@ -152,9 +147,9 @@ export default function Chirpy() {
         </p>
       </section>
 
-      {/* What you get */}
+      {/* What you can explore */}
       <section style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <h2 className="text-title">What you get</h2>
+        <h2 className="text-title">What you can explore</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}>
           {FEATURES.map((f) => (
             <div key={f.title} className="card-subtle" style={{ padding: "1.25rem" }}>
@@ -171,20 +166,20 @@ export default function Chirpy() {
 
       {/* Contributor tie-in */}
       <section className="card" style={{ display: "flex", flexDirection: "column", gap: "0.6rem", padding: "1.5rem" }}>
-        <h2 className="text-title" style={{ margin: 0 }}>Made to plug you into Bittrees</h2>
+        <h2 className="text-title" style={{ margin: 0 }}>Your existing conversations stay available</h2>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.85rem", lineHeight: 1.6, color: "var(--color-ink-muted)", margin: 0, maxWidth: "560px" }}>
-          Import the Bittrees Inc and Research orgs to reach contributors and coordinate onchain
-          work.
+          Keep using the Governance messenger for existing conversations. Chat is being
+          verified with community rooms before it becomes the shared messaging app.
         </p>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.82rem", color: "var(--color-ink-dim)", margin: 0 }}>
-          Open Chirpy → import Bittrees → say hi in #contributors.
+          Preview access does not grant room membership or transfer message history.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginTop: "0.4rem" }}>
           <a className="btn-primary" href={CHIRPY_WEB} target="_blank" rel="noreferrer">
-            Open Chirpy ↗
+            Open Chat preview ↗
           </a>
-          <Link className="btn-ghost" to={ROUTES.contribute}>
-            Become a Bittrees contributor
+          <Link className="btn-ghost" to={ROUTES.messenger}>
+            Open Governance messenger
           </Link>
         </div>
       </section>
@@ -200,8 +195,8 @@ export default function Chirpy() {
           lineHeight: 1.6,
         }}
       >
-        Chirpy is built by Bittrees Technology and is open source. Browse the code, file issues,
-        or grab a release on{" "}
+        Chat is built by Bittrees Technology and is open source. Browse the code, file issues,
+        or follow release progress on{" "}
         <a href={CHIRPY_REPO} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>
           GitHub ↗
         </a>

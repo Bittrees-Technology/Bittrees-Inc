@@ -239,7 +239,7 @@ const FOOTER_COLS: { title: string; links: FooterLinkDef[] }[] = [
     links: [
       { label: "Become a contributor", href: ROUTES.contribute },
       { label: "Chat", href: ROUTES.messenger },
-      { label: "Chirpy app", href: ROUTES.chirpy },
+      { label: "Chat preview", href: ROUTES.chirpy },
       { label: "X / Twitter", href: GOV_LINKS.twitter, external: true },
       { label: "Handbook (wiki)", href: GOV_LINKS.wiki, external: true },
     ],
