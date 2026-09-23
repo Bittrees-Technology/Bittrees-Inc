@@ -48,21 +48,21 @@ function makeFakeDocument(preexisting: FakeElement[] = []): DocumentLike & { hea
 test("applyRouteMeta sets title, description, canonical, OG and Twitter tags", () => {
   const doc = makeFakeDocument();
   applyRouteMeta(doc, {
-    title: "Chirpy — Wallet-native chat for any community | Bittrees",
+    title: "Chat — Messaging and connected email preview | Bittrees",
     description: "Private DMs and token-gated rooms in one wallet-native app.",
     canonical: "https://gov.bittrees.org/chirpy",
     ogImage: "https://gov.bittrees.org/bittrees_logo_tree.png",
     twitterCard: "summary_large_image",
   });
 
-  assert.equal(doc.title, "Chirpy — Wallet-native chat for any community | Bittrees");
+  assert.equal(doc.title, "Chat — Messaging and connected email preview | Bittrees");
 
   const get = (tag: string, attr: string, value: string) =>
     doc.headTags.find((el) => el.tagName === tag && el.getAttribute(attr) === value);
 
   assert.equal(get("meta", "name", "description")?.getAttribute("content"), "Private DMs and token-gated rooms in one wallet-native app.");
   assert.equal(get("link", "rel", "canonical")?.getAttribute("href"), "https://gov.bittrees.org/chirpy");
-  assert.equal(get("meta", "property", "og:title")?.getAttribute("content"), "Chirpy — Wallet-native chat for any community | Bittrees");
+  assert.equal(get("meta", "property", "og:title")?.getAttribute("content"), "Chat — Messaging and connected email preview | Bittrees");
   assert.equal(get("meta", "property", "og:image")?.getAttribute("content"), "https://gov.bittrees.org/bittrees_logo_tree.png");
   assert.equal(get("meta", "name", "twitter:card")?.getAttribute("content"), "summary_large_image");
   assert.equal(get("meta", "name", "twitter:image")?.getAttribute("content"), "https://gov.bittrees.org/bittrees_logo_tree.png");
@@ -75,7 +75,7 @@ test("applyRouteMeta reuses an existing tag instead of duplicating it", () => {
   const doc = makeFakeDocument([existingCanonical]);
 
   applyRouteMeta(doc, {
-    title: "Chirpy",
+    title: "Chat",
     description: "desc",
     canonical: "https://gov.bittrees.org/chirpy",
   });
@@ -93,13 +93,13 @@ test("cleanup restores prior title and pre-existing tag values, and removes newl
   doc.title = "Bittrees, Inc. — Governance";
 
   const cleanup = applyRouteMeta(doc, {
-    title: "Chirpy — Wallet-native chat for any community | Bittrees",
+    title: "Chat — Messaging and connected email preview | Bittrees",
     description: "Private DMs and token-gated rooms in one wallet-native app.",
     canonical: "https://gov.bittrees.org/chirpy",
   });
 
   // Route was applied.
-  assert.equal(doc.title, "Chirpy — Wallet-native chat for any community | Bittrees");
+  assert.equal(doc.title, "Chat — Messaging and connected email preview | Bittrees");
   assert.ok(doc.headTags.some((el) => el.tagName === "link" && el.getAttribute("rel") === "canonical"));
 
   cleanup();
