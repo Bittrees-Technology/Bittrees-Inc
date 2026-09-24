@@ -36,3 +36,11 @@ import { guardPushWallet } from '../../src/lib/pushSessionWallet';
     absentPublicKey: absentPublicKey === 'synthetic-public-key', boundRecovery: boundRecovery === keys.privateKeyArmored, wrongProviderCalls, staleRejected };
 };
 document.body.textContent = 'Ready';
+
+(window as any).checkUriCompatibility = () => new Promise((resolve, reject) => {
+  const worker = new Worker(new URL('./uri.worker.js', import.meta.url), { type: 'module' });
+  const timer = setTimeout(() => { worker.terminate(); reject(new Error('URI decoder exceeded deadline')); }, 5000);
+  worker.onmessage = event => { clearTimeout(timer); worker.terminate(); resolve(event.data); };
+  worker.onerror = () => { clearTimeout(timer); worker.terminate(); reject(new Error('URI worker failed')); };
+  worker.postMessage('check');
+});
