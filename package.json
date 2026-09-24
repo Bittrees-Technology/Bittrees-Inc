@@ -18,8 +18,10 @@
     "pretest:push-sdk-browser": "patch-package --error-on-fail",
     "test:push-sdk-browser": "playwright test -c playwright.push-sdk.config.ts",
     "test:app-recovery": "playwright test -c playwright.app-recovery.config.ts",
-    "test:dependency-audit": "npm audit --audit-level=high",
-    "test:uuid-compatibility": "node --test scripts/uuid-compatibility.test.mjs"
+    "test:dependency-audit": "npm audit --audit-level=moderate",
+    "test:uuid-compatibility": "node --test scripts/uuid-compatibility.test.mjs",
+    "pretest:uri-compatibility": "patch-package --error-on-fail",
+    "test:uri-compatibility": "node --test scripts/uri-decoder.test.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
@@ -73,6 +75,9 @@
     },
     "@metamask/utils": {
       "uuid": "11.1.1"
+    },
+    "query-string": {
+      "decode-uri-component": "0.5.0"
     }
   }
 }
