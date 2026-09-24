@@ -1,3 +1,10 @@
+import { getUUID } from '@pushprotocol/restapi/src/lib/payloads/helpers';
+import { PushStream } from '@pushprotocol/restapi/src/lib/pushstream/PushStream';
+(window as any).checkPushUuid = () => {
+  // Construct only: no socket initialization, signing, room creation or send.
+  const stream = new (PushStream as any)(`0x${'a'.repeat(40)}`, [], { env: 'prod', raw: false }, '', undefined, undefined);
+  return { payloads: Array.from({ length: 32 }, () => getUUID()), stream: stream.uid };
+};
 import { PGPHelper } from '@pushprotocol/restapi/src/lib/chat/helpers/pgp';
 import { decryptAndVerifyMessage } from '@pushprotocol/restapi/src/lib/chat/helpers/crypto';
 import { aesEncrypt } from '@pushprotocol/restapi/src/lib/chat/helpers/aes';

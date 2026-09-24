@@ -18,7 +18,8 @@
     "pretest:push-sdk-browser": "patch-package --error-on-fail",
     "test:push-sdk-browser": "playwright test -c playwright.push-sdk.config.ts",
     "test:app-recovery": "playwright test -c playwright.app-recovery.config.ts",
-    "test:dependency-audit": "npm audit --audit-level=high"
+    "test:dependency-audit": "npm audit --audit-level=high",
+    "test:uuid-compatibility": "node --test scripts/uuid-compatibility.test.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
@@ -50,7 +51,8 @@
   },
   "overrides": {
     "@pushprotocol/restapi": {
-      "axios": "0.33.0"
+      "axios": "0.33.0",
+      "uuid": "11.1.1"
     },
     "ws@>=8.0.0 <8.21.0": "8.21.0",
     "postcss@>=8.0.0 <8.5.23": "8.5.23",
@@ -61,7 +63,16 @@
     "qs@>=6.0.0 <6.16.0": "6.16.0",
     "joi@>=17.0.0 <17.13.6": "17.13.6",
     "@wagmi/connectors": {
-      "@metamask/sdk": "0.33.1"
+      "@metamask/sdk": {
+        ".": "0.33.1",
+        "uuid": "11.1.1"
+      }
+    },
+    "@metamask/sdk-communication-layer": {
+      "uuid": "11.1.1"
+    },
+    "@metamask/utils": {
+      "uuid": "11.1.1"
     }
   }
 }

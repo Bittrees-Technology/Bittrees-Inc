@@ -18,6 +18,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y redis-server
       - run: npm ci --ignore-scripts
       - run: npm run test:dependency-audit
+      - run: npm run test:uuid-compatibility
       - run: npm run test:unit
       - run: npm run test:release-gate
       - run: node --test scripts/signed-registry.test.mjs scripts/redis-atomic.test.mjs scripts/roles-feed.test.mjs
