@@ -15,7 +15,7 @@ The 23 September 2026 messenger hardening passes update selected dependencies wh
 | browserslist4.x / baseline-browser-mapping2.x | 4.28.7 / 2.11.0 |
 | qs6.x / Joi17.x | 6.16.0 / 17.13.6 |
 
-Transitive overrides are bounded to the affected major/range, except Axios which is scoped to the pinned Push package and MetaMask SDK which is scoped to the Wagmi connectors package. These restrictions prevent reinstalling known affected copies without forcing other major versions. The lockfile retains package integrity hashes. Remove or revise an override only after the upstream dependency resolves a suitable version and the compatibility checks pass.
+Transitive overrides are bounded to the affected major/range, except Axios which is scoped to the pinned Push package, MetaMask SDK which is scoped to the Wagmi connectors package, and UUID which is scoped to its installed SDK callers. These restrictions prevent reinstalling known affected copies without forcing other major versions. The lockfile retains package integrity hashes. Remove or revise an override only after the upstream dependency resolves a suitable version and the compatibility checks pass.
 
 The fresh npm audit changed from40 affected packages (10high,23moderate,7low) to26 (0high/critical,20moderate,6low). These counts include inherited dependency findings; they are not counts of separately demonstrated exploitable application paths. Relevant upstream patch references include [Vite filesystem protection](https://github.com/advisories/GHSA-fx2h-pf6j-xcff), [React Router](https://github.com/advisories/GHSA-qwww-vcr4-c8h2), [ws resource limits](https://github.com/advisories/GHSA-96hv-2xvq-fx4p), [qs round-trip parsing](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g), and [Joi prototype handling](https://github.com/advisories/GHSA-6w3j-5fw6-r9vr). Some reports concern optional/server/development paths; an audit count alone does not establish exposure of this static deployment.
 
@@ -26,6 +26,14 @@ The MetaMask SDK and communication layer now resolve to 0.33.1 through a scoped 
 The current npm audit reports27 affected packages (0high/critical,21moderate,6low). The MetaMask advisory is absent, but inherited UUID/query-decoding reports still affect these packages. Counts reflect affected dependency nodes and do not directly count distinct application vulnerabilities; this follow-up does not claim an overall count reduction.
 
 `tests/app-recovery/connector-session.spec.ts` exercises the built application with its actual RainbowKit/Wagmi connector. Synthetic injected-provider account, chain and disconnect events cancel a delayed export signature; a fresh review exports only the current wallet's notes. Each scenario preserves both wallets' source records and denies all network writes. Only the provider boundary and test wallets are synthetic. This verifies injected browser connections, not mobile MetaMask SDK or WalletConnect relay/deep-link acceptance.
+
+## UUID compatibility hardening
+
+The 24 September update scopes UUID11.1.1 to Push, MetaMask SDK, its communication layer and every installed MetaMask utils copy. This is the patched release retaining CommonJS and ESM entry points. The existing nested Wagmi→MetaMask SDK override owns that SDK's UUID override too; a separate top-level rule did not override the nested SDK rule in npm. A fresh clean installation and every-caller resolution tests verify the actual installed graph. Only UUID lockfile entries change; SDK/connector versions, the Push patch and signature/storage contracts remain unchanged.
+
+The original Push UUID9 v3/v5 calls silently changed short caller-provided buffers. New tests verify rejection before mutation, deterministic/random v4 identifiers, parse/stringify, actual Push payload IDs and MetaMask CommonJS/ESM filesystem sandbox names. The built-browser fixture also constructs actual Push payload/stream IDs without initializing sockets, signing or sending. Existing encrypted-room/provider-isolation and actual app connector/export checks remain required. These tests establish offline SDK compatibility, not live mobile pairing or private-room acceptance.
+
+The fresh audit now reports21 affected packages (15moderate,6low), representing two distinct advisory IDs: URI decoding and elliptic. The UUID advisory is absent. Package counts include inherited findings; this does not demonstrate production exploitability. Reference: [UUID buffer-boundary advisory and patched release lines](https://github.com/uuidjs/uuid/security/advisories/GHSA-w5hq-g745-h8pq).
 
 ## Production installation
 
@@ -39,8 +47,7 @@ The dependency update also requires the build, unit/release/registry tests, whol
 
 ## Remaining work
 
-- Review and update the wallet/connector/signing graph together: Wagmi, WalletConnect/Reown and MetaMask packages retain inherited UUID and query-decoding findings. Newer Wagmi calls signing-library actions absent from the current viem version, so upgrading it alone is not compatible. The patched decode-uri-component0.5 is ESM while the installed query-string consumer requires a CommonJS callable; a direct version override breaks decoding. Coordinate these migrations and verify provider changes, recovery, malformed query handling and real WalletConnect/native returns before acceptance.
+- Review and update the wallet/connector/signing graph together: Wagmi, WalletConnect/Reown and MetaMask packages retain inherited query-decoding findings. Newer Wagmi calls signing-library actions absent from the current viem version, so upgrading it alone is not compatible. The patched decode-uri-component0.5 is ESM while the installed query-string consumer requires a CommonJS callable; a direct version override breaks decoding. Coordinate these migrations and verify provider changes, recovery, malformed query handling and real WalletConnect/native returns before acceptance.
 - MetaMask SDK0.33.1 is itself deprecated upstream. Its advisory patch is an interim compatibility measure; migration to maintained connectors and real mobile/device acceptance remain open.
-- Push still includes an older UUID dependency. Any targeted replacement needs the SDK's generated-ID paths and browser compatibility checked; this pass changes its HTTP client only.
 - Browser crypto polyfills retain the low-severity elliptic finding and inherited package reports. The audit's suggested old polyfill-plugin downgrade is not an established compatible fix. Review actual bundled paths and an upstream replacement/removal strategy.
 - Re-run the audit when dependencies change and at release time. Separate source-room/member/device, deployment, identity, policy and operational acceptance remain required for the Chat migration.
