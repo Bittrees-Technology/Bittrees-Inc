@@ -6,6 +6,7 @@ import { useEffect } from "react";
  * route's title/OG tags leak into whatever page the user navigates to next.
  */
 export interface RouteMeta {
+  robots?: string;
   title: string;
   description: string;
   canonical: string;
@@ -56,6 +57,7 @@ function buildSpecs(meta: RouteMeta): TagSpec[] {
   const ogDescription = meta.ogDescription ?? meta.description;
 
   const specs: TagSpec[] = [
+    { selector: 'meta[name="robots"]', attr: "name", key: "robots", value: meta.robots ?? "index,follow", contentAttr: "content" },
     { selector: 'meta[name="description"]', attr: "name", key: "description", value: meta.description, contentAttr: "content" },
     { selector: 'link[rel="canonical"]', attr: "rel", key: "canonical", value: meta.canonical, contentAttr: "href" },
     { selector: 'meta[property="og:type"]', attr: "property", key: "og:type", value: "website", contentAttr: "content" },
@@ -101,6 +103,6 @@ export function useRouteMeta(meta: RouteMeta): void {
   useEffect(
     () => applyRouteMeta(document, meta),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [meta.title, meta.description, meta.canonical, meta.ogTitle, meta.ogDescription, meta.ogImage, meta.twitterCard],
+    [meta.title, meta.description, meta.canonical, meta.ogTitle, meta.ogDescription, meta.ogImage, meta.twitterCard, meta.robots],
   );
 }

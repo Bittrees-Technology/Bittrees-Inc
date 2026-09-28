@@ -9,9 +9,113 @@
       "destination": "/api/gate?p=$1"
     },
     {
-      "source": "/((?!api/).*)",
-      "destination": "/"
+      "source": "/proposals",
+      "destination": "/seo/proposals.html"
+    },
+    {
+      "source": "/structure",
+      "destination": "/seo/structure.html"
+    },
+    {
+      "source": "/mint",
+      "destination": "/seo/mint.html"
+    },
+    {
+      "source": "/forum",
+      "destination": "/seo/forum.html"
+    },
+    {
+      "source": "/contribute",
+      "destination": "/seo/contribute.html"
+    },
+    {
+      "source": "/vision",
+      "destination": "/seo/vision.html"
+    },
+    {
+      "source": "/code-of-conduct",
+      "destination": "/seo/code-of-conduct.html"
+    },
+    {
+      "source": "/hq",
+      "destination": "/seo/hq.html"
+    },
+    {
+      "source": "/69420",
+      "destination": "/seo/69420.html"
+    },
+    {
+      "source": "/chirpy",
+      "destination": "/seo/chirpy.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/seo/workspace.html"
+    },
+    {
+      "source": "/proposals/new",
+      "destination": "/seo/workspace.html"
+    },
+    {
+      "source": "/messenger",
+      "destination": "/seo/workspace.html"
+    },
+    {
+      "source": "/proposals/:id",
+      "destination": "/seo/workspace.html"
+    },
+    {
+      "source": "/forum/:id",
+      "destination": "/seo/workspace.html"
     }
   ],
-  "installCommand": "npm ci --ignore-scripts"
+  "installCommand": "npm ci --ignore-scripts",
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/messenger",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/proposals/:id",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/forum/:id",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    },
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, follow"
+        }
+      ]
+    }
+  ]
 }

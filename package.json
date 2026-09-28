@@ -21,7 +21,9 @@
     "test:dependency-audit": "npm audit --audit-level=moderate",
     "test:uuid-compatibility": "node --test scripts/uuid-compatibility.test.mjs",
     "pretest:uri-compatibility": "patch-package --error-on-fail",
-    "test:uri-compatibility": "node --test scripts/uri-decoder.test.mjs"
+    "test:uri-compatibility": "node --test scripts/uri-decoder.test.mjs",
+    "postbuild": "node scripts/build-seo.mjs",
+    "test:seo": "node --test scripts/seo.test.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
