@@ -25,3 +25,6 @@ test-results/
 playwright-report/
 
 .push-sdk-dist/
+
+# Local visual verification output
+artifacts/seo/

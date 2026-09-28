@@ -5,14 +5,9 @@
 
 import { Link } from "react-router";
 import { ROUTES } from "../lib/links";
-import { useRouteMeta } from "../lib/routeMeta";
 
 const CHIRPY_WEB = "https://chirpy.bittrees.org";
 const CHIRPY_REPO = "https://github.com/Bittrees-Technology/chirpy";
-const PAGE_TITLE = "Chat — Messaging and connected email preview | Bittrees";
-const PAGE_DESCRIPTION =
-  "Explore Chat: wallet messaging and connected Bittrees Mail. Public launch, email forwarding and device recovery verification are still in progress.";
-
 const FEATURES: { title: string; body: string }[] = [
   {
     title: "Your wallet, your public profile",
@@ -68,13 +63,6 @@ function ChirpMark() {
 }
 
 export default function Chirpy() {
-  useRouteMeta({
-    title: PAGE_TITLE,
-    description: PAGE_DESCRIPTION,
-    canonical: "https://gov.bittrees.org/chirpy",
-    ogImage: "https://gov.bittrees.org/bittrees_logo_tree.png",
-    twitterCard: "summary_large_image",
-  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem", maxWidth: "820px", margin: "0 auto", width: "100%" }}>

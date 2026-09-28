@@ -1,10 +1,15 @@
 import { Link } from "react-router";
 import { ROUTES } from "../lib/links";
+import { publicPages } from "../lib/seo";
 import { VISION_PARAGRAPHS } from "./Vision";
 
 export default function Overview() {
   return (
     <div style={{ maxWidth: "720px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "2.75rem", paddingTop: "1.5rem" }}>
+      <header style={{ textAlign: "center" }}>
+        <h1 className="text-display">Bittrees Governance</h1>
+        <p style={{ fontFamily: "var(--font-sans)", color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: "1rem" }}>{publicPages["/"].description}</p>
+      </header>
       {/* Vision statement — in full */}
       <section style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
         <p className="text-label">Bittrees, Inc. · Vision Statement</p>
