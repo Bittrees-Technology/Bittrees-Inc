@@ -18,7 +18,7 @@ test('Push DID and bare address use the same existing role authority', async t =
   const fetch = t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(url, 'https://roles.invalid');
     assert.deepEqual(JSON.parse(options.body), ['GET', 'bittrees:roles']);
-    return { json: async () => ({ result: JSON.stringify(roles) }) };
+    return { ok: true, json: async () => ({ result: JSON.stringify(roles) }) };
   });
   for (const query of [true, false]) {
     for (const address of [owner, owner.toLowerCase(), `eip155:${owner}`, `eip155:${owner.toLowerCase()}`]) {
@@ -36,4 +36,28 @@ test('Push DID and bare address use the same existing role authority', async t =
     assert.equal((await check(address)).code, 400);
   }
   assert.equal(fetch.mock.callCount(), calls, 'invalid identifiers must fail before authority lookup');
+});
+
+test('role-source outages stay unavailable rather than looking like removed roles', async t => {
+  const fetch = t.mock.method(globalThis, 'fetch');
+  const unavailable = [
+    async () => { throw Error('synthetic credential must not be echoed'); },
+    async () => ({ ok: false, json: async () => ({ result: null }) }),
+    async () => ({ ok: true, json: async () => ({ error: 'unavailable' }) }),
+    async () => ({ ok: true, json: async () => ({}) }),
+    ...['broken-json', 'null', '[]', JSON.stringify({ [owner]: null }), JSON.stringify({ [owner]: [{ label: 3 }] }),
+      JSON.stringify({ [owner]: [], [owner.toLowerCase()]: [] })].map(result => async () => ({ ok: true, json: async () => ({ result }) })),
+  ];
+  for (const response of unavailable) {
+    fetch.mock.mockImplementation(response);
+    const r = await check(`eip155:${owner}`);
+    assert.equal(r.code, 503);
+    assert.deepEqual(r.body, { access: false, roleSourceReady: false, error: 'Role source unavailable' });
+  }
+  fetch.mock.mockImplementation(async () => ({ ok: true, json: async () => ({ result: null }) }));
+  const denied = await check(`eip155:${owner}`);
+  assert.equal(denied.code, 403); assert.equal(denied.body.roleSourceReady, true);
+  fetch.mock.mockImplementation(async () => ({ ok: true, json: async () => ({ result: JSON.stringify({ [owner]: [{ label: 'Partner' }] }) }) }));
+  const allowed = await check(`eip155:${owner}`);
+  assert.equal(allowed.code, 200); assert.equal(allowed.body.roleSourceReady, true);
 });
