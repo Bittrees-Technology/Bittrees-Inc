@@ -32,19 +32,32 @@ const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
 const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 const ROLES_KEY = "bittrees:roles"; // { <addrLower>: [{ label, color }] }
 
-/** The admin-assigned roles map from KV ({} if KV isn't configured). */
+/** Read current role authority. Unavailability must not look like revocation. */
 async function readRoles() {
-  if (!KV_URL || !KV_TOKEN) return {};
+  if (!KV_URL || !KV_TOKEN) throw Error("Role source unavailable");
   try {
     const r = await fetch(KV_URL, {
       method: "POST",
       headers: { Authorization: `Bearer ${KV_TOKEN}`, "content-type": "application/json" },
       body: JSON.stringify(["GET", ROLES_KEY]),
+      redirect: "error",
+      signal: AbortSignal.timeout(8000),
     });
+    if (!r.ok) throw Error("Role source unavailable");
     const j = await r.json();
-    return j?.result ? JSON.parse(j.result) : {};
+    if (!j || j.error || !("result" in j) || (j.result !== null && typeof j.result !== "string")) throw Error("Invalid role source");
+    const roles = j.result === null ? {} : JSON.parse(j.result);
+    if (!roles || typeof roles !== "object" || Array.isArray(roles) || Object.keys(roles).length > 1000) throw Error("Invalid role source");
+    const seen = new Set();
+    for (const [wallet, entries] of Object.entries(roles)) {
+      const key = wallet.toLowerCase();
+      if (!/^0x[a-fA-F0-9]{40}$/.test(wallet) || seen.has(key) || !Array.isArray(entries) || entries.length > 100 ||
+          entries.some(entry => !entry || typeof entry.label !== "string" || !entry.label.trim() || entry.label.length > 100)) throw Error("Invalid role source");
+      seen.add(key);
+    }
+    return Object.fromEntries(Object.entries(roles).map(([wallet, entries]) => [wallet.toLowerCase(), entries]));
   } catch {
-    return {};
+    throw Error("Role source unavailable");
   }
 }
 
@@ -274,10 +287,13 @@ export default async function handler(req, res) {
       const combine = gate?.combine === "all" ? "all" : "any";
       if (rules.length === 0) { res.status(403).json({ access: false }); return; }
       // Load the roles registry once if any rule is role-gated.
-      const roles = rules.some((r) => r?.kind === "role") ? await readRoles() : {};
+      const usesRoles = rules.some((r) => r?.kind === "role");
+      let roles;
+      try { roles = usesRoles ? await readRoles() : {}; }
+      catch { res.status(503).json({ access: false, roleSourceReady: false, error: "Role source unavailable" }); return; }
       const results = await Promise.all(rules.map((r) => evalRule(r, user, roles)));
       const ok = combine === "all" ? results.every(Boolean) : results.some(Boolean);
-      res.status(ok ? 200 : 403).json({ access: ok, combine, rules: rules.length });
+      res.status(ok ? 200 : 403).json({ access: ok, combine, rules: rules.length, ...(usesRoles ? { roleSourceReady: true } : {}) });
       return;
     }
 
