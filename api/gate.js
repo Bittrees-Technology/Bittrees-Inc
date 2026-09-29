@@ -162,6 +162,11 @@ async function tokenBalance1155Any(token, user) {
   }
 }
 
+// Push CustomEndpoint substitutes its chain-agnostic DID, not a bare address.
+// Accept only the observed EVM format; never strip arbitrary namespaces/chains.
+function pushAddress(value) {
+  return /^eip155:0x[a-fA-F0-9]{40}$/.test(value) ? value.slice(7) : value;
+}
 const isAddr = (s) => /^0x[a-fA-F0-9]{40}$/.test(s);
 
 /** Decode a base64url gate object from the URL. */
@@ -245,7 +250,7 @@ export default async function handler(req, res) {
     // ENS-subname Safe room: /api/gate/safe/<safeAddress>/<userAddress>/checkAccess
     if (parts[gi + 1] === "safe") {
       const safeRaw = parts[gi + 2] || "";
-      const userRaw = parts[gi + 3] || "";
+      const userRaw = pushAddress(parts[gi + 3] || "");
       if (!isAddr(safeRaw) || !isAddr(userRaw)) {
         res.status(400).json({ error: "invalid address" });
         return;
@@ -260,7 +265,7 @@ export default async function handler(req, res) {
 
     // Multi-rule room: /api/gate/multi/<base64 gate>/<userAddress>/checkAccess
     if (parts[gi + 1] === "multi") {
-      const userRaw = parts[gi + 3] || "";
+      const userRaw = pushAddress(parts[gi + 3] || "");
       if (!isAddr(userRaw)) { res.status(400).json({ error: "invalid address" }); return; }
       let gate;
       try { gate = decodeGate(parts[gi + 2]); } catch { res.status(400).json({ error: "bad gate" }); return; }
@@ -280,7 +285,7 @@ export default async function handler(req, res) {
     if (parts[gi + 1] === "token") {
       const tokenRaw = parts[gi + 3] || "";
       const min = parts[gi + 4] || "1";
-      const userRaw = parts[gi + 5] || "";
+      const userRaw = pushAddress(parts[gi + 5] || "");
       if (!isAddr(tokenRaw) || !isAddr(userRaw)) {
         res.status(400).json({ error: "invalid address" });
         return;
@@ -295,7 +300,7 @@ export default async function handler(req, res) {
 
     // BGOV-tier room: /api/gate/<tier>/<address>/checkAccess
     const tier = Number(parts[gi + 1]) || 1;
-    const addrRaw = parts[gi + 2] || "";
+    const addrRaw = pushAddress(parts[gi + 2] || "");
     if (!isAddr(addrRaw)) {
       res.status(400).json({ error: "invalid address" });
       return;

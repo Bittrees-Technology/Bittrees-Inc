@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "release:gate": "node scripts/release-gate.mjs",
     "test:release-gate": "node --test scripts/release-gate.test.mjs",
-    "test:unit": "node --test src/lib/routeMeta.test.ts src/lib/chatRecoveryExport.test.ts src/lib/pushSessionCore.test.ts src/lib/pushSessionWallet.test.ts",
+    "test:unit": "node --test api/gate.test.js src/lib/routeMeta.test.ts src/lib/chatRecoveryExport.test.ts src/lib/pushSessionCore.test.ts src/lib/pushSessionWallet.test.ts",
     "test:recovery-browser": "playwright test -c playwright.recovery.config.ts",
     "test:push-browser": "playwright test -c playwright.push.config.ts",
     "postinstall": "patch-package --error-on-fail",
