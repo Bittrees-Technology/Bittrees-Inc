@@ -27,6 +27,7 @@ jobs:
       - run: npm run test:seo
       - run: npx playwright install --with-deps chromium
       - run: node scripts/seo-browser.mjs
+      - run: npm run test:forum
       - run: npm run test:app-recovery
       - run: npm run test:recovery-browser
       - run: npm run test:push-browser

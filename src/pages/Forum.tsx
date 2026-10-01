@@ -21,7 +21,7 @@ export default function Forum() {
         >
           A decentralized governance forum. Every post is signed by your wallet and recorded
           on-chain as an EAS attestation on Base — anyone can read it, no account required.
-          Anyone may post; BGOV holders are badged as shareholders.
+          Starting a discussion requires 69 BGOV; any connected wallet can reply. Authors can edit their posts with a new signed version; earlier versions remain on-chain.
         </p>
       </header>
 

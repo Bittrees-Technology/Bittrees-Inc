@@ -1,3 +1,4 @@
+import { ForumPostActions } from "../components/ForumEdit";
 import { Link, useParams } from "react-router";
 import { useThread } from "../lib/forum";
 import { Composer, PostCard, LinkifiedText } from "../components/forum";
@@ -44,6 +45,8 @@ export default function ForumThread() {
           </header>
 
           {rootMod.hidden ? <HiddenNotice /> : root.body && <LinkifiedText text={root.body} />}
+
+          {!rootMod.hidden && <ForumPostActions post={root}/>}
 
           <section style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             <p className="text-label">{replies.length} {replies.length === 1 ? "reply" : "replies"}</p>
