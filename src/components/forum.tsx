@@ -1,3 +1,5 @@
+import { ForumMarkdown, MarkdownField } from "./ForumMarkdown";
+import { ForumPostActions } from "./ForumEdit";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
@@ -21,21 +23,8 @@ function humanError(e: unknown): string {
 /** Associate tier — minimum BGOV (common stock) required to START a discussion. */
 const ASSOCIATE_MIN = 69;
 
-/** Preserve line breaks + linkify URLs (XSS-safe React nodes). */
-export function LinkifiedText({ text }: { text: string }) {
-  const parts = text.split(/(https?:\/\/[^\s)]+)/g);
-  return (
-    <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "var(--font-sans)", fontSize: "0.9rem", lineHeight: 1.65, color: "var(--color-ink-muted)" }}>
-      {parts.map((p, i) =>
-        /^https?:\/\//.test(p) ? (
-          <a key={i} href={p} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary-hover)" }}>{p}</a>
-        ) : (
-          <span key={i}>{p}</span>
-        )
-      )}
-    </div>
-  );
-}
+/** Markdown rendering preserves ordinary plain-text paragraphs. */
+export const LinkifiedText = ForumMarkdown;
 
 export function PostCard({ post, linkToThread, replyCount }: { post: ForumPost; linkToThread?: boolean; replyCount?: number }) {
   const { address } = useAccount();
@@ -70,12 +59,10 @@ export function PostCard({ post, linkToThread, replyCount }: { post: ForumPost; 
 
   if (linkToThread) {
     return (
-      <Link to={`${ROUTES.forum}/${post.id}`} className="card" style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-        {inner}
-      </Link>
+      <article className="card">{inner}<Link to={`${ROUTES.forum}/${post.id}`} style={{display:"inline-block",marginTop:12}}>Open discussion</Link>{post.editedAt && <span style={{marginLeft:12,fontSize:".75rem"}}>Edited</span>}</article>
     );
   }
-  return <div className="card">{inner}</div>;
+  return <article className="card">{inner}{!mod.hidden && <ForumPostActions post={post}/>}</article>;
 }
 
 /**
@@ -170,6 +157,7 @@ export function Composer({
       </div>
       {!isReply && (
         <input
+          aria-label="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Title"
@@ -177,13 +165,7 @@ export function Composer({
           style={inputStyle}
         />
       )}
-      <textarea
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder={isReply ? "Write a reply…" : "What would you like to discuss?"}
-        rows={isReply ? 3 : 5}
-        style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
-      />
+      <MarkdownField value={body} onChange={setBody} label={isReply ? "Reply text" : "Post text"} rows={isReply ? 3 : 5} />
       <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", flexWrap: "wrap" }}>
         <button
           className="btn-primary"
