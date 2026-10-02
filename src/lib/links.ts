@@ -2,9 +2,10 @@
 
 /** The Bittrees family of sites — surfaced in the header + footer. */
 export const FAMILY = [
-  { label: "Capital", href: "https://capital.bittrees.org" },
-  { label: "Research", href: "https://research.bittrees.org" },
   { label: "bittrees.org", href: "https://bittrees.org" },
+  { label: "Research", href: "https://research.bittrees.org" },
+  { label: "Capital", href: "https://capital.bittrees.org" },
+  { label: "Index", href: "https://index.bittrees.org" },
 ] as const;
 
 /**
