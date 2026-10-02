@@ -13,7 +13,7 @@ import { useRoomRegistry, saveRoomChatId, saveCustomRoom, deleteCustomRoom, appr
 import { assignRole, unassignRole, createRole, deleteRole, selectableRoles, useCommunity, moderateItem, publishEncKey, TIER_ROLES } from "../lib/community";
 import { useTopics, CONTRIB_COMMUNITY, EASSCAN_VIEW } from "../lib/forum";
 import { deriveEncKeypair, decryptApplication, pubKeyHex, type Application, type Envelope, type EncKeypair } from "../lib/appcrypto";
-import { ROUTES, shortAddress, relativeTime } from "../lib/links";
+import { CHAT_URL, ROUTES, shortAddress, relativeTime } from "../lib/links";
 import { useRoomGate, RoomGateBuilder } from "../components/RoomGateBuilder";
 import { AddressName } from "../components/AddressName";
 import { getEnsAddress } from "@wagmi/core";
@@ -292,7 +292,7 @@ function CommunityRoomsAdmin({ address }: { address: `0x${string}` }) {
         <p style={{ ...dim, margin: "0.25rem 0 0", lineHeight: 1.55 }}>
           Create a gated Push group for each BGOV tier and each bittrees.eth subname (gated to its
           Safe's signers &amp; proposers). Creating a room publishes it to the registry and it goes live
-          in <Link to={ROUTES.messenger} style={{ color: "var(--color-primary-hover)" }}>Chat</Link>{" "}
+          in <a href={CHAT_URL} style={{ color: "var(--color-primary-hover)" }}>Chat</a>{" "}
           immediately — no redeploy. (If the registry isn't configured, you'll get an env-var line to set instead.)
           Every room is created with{" "}
           {ROOM_ADMINS.map((a, i) => (

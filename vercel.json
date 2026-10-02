@@ -145,5 +145,12 @@
     "api/forum-subscriptions.js": {
       "maxDuration": 300
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/messenger",
+      "destination": "https://chat.bittrees.org",
+      "permanent": true
+    }
+  ]
 }

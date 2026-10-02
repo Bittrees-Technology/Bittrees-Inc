@@ -1,5 +1,4 @@
-import { Link } from "react-router";
-import { CHAT_URL, ROUTES } from "../lib/links";
+import { CHAT_URL } from "../lib/links";
 import "./chat-page.css";
 
 const features = [
@@ -34,7 +33,6 @@ export default function Chirpy() {
     </section>
 
     <footer className="chat-page-resources">
-      <p>Looking for your existing Governance conversations? <Link to={ROUTES.messenger}>Open Governance messenger</Link>.</p>
       <div><a href={`${CHAT_URL}/support`}>Chat support</a><a href="https://github.com/Bittrees-Technology/chirpy" target="_blank" rel="noreferrer">Source code</a></div>
     </footer>
   </article>;
