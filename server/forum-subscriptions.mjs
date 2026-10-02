@@ -45,12 +45,12 @@ export function createSubscriptions({command=redisCommand, request=fetch, now=()
  async function deliver(){
   if(!ready())throw Error('Email subscriptions are not configured yet.');
   const lock=token();if((await command(['SET',prefix+'worker',lock,'NX','EX',300])).result!=='OK')return {busy:true};
-  let sent=0,blocked=0;const started=now();
+  let sent=0,blocked=0,failed=0;const started=now();
   try{
    const ids=(await command(['SMEMBERS',prefix+'subscribers'])).result||[];
    const until=Math.floor(now()/1000)-60;
    for(const id of ids){
-    if(sent>=30||now()-started>240000)break;
+    if(sent+failed>=30||now()-started>240000)break;
     const sub=await get('subscriber:'+id);if(!sub||sub.nextCheck>now())continue;
     let job=await get('job:'+id);
     if(job&&job.owner!==sub.token){await command(['DEL',prefix+'job:'+id]);job=null;}
@@ -70,11 +70,11 @@ export function createSubscriptions({command=redisCommand, request=fetch, now=()
     if(!flags||typeof flags!=='object'||Array.isArray(flags))throw Error('Moderation unavailable');
     if((job.items||[]).some(id=>flags[id]?.mod==='removed'||(flags[id]?.mod!=='approved'&&new Set(flags[id]?.by||[]).size>=2))){blocked++;continue;}
     if((await command(['GET',prefix+'worker'])).result!==lock)throw Error('Delivery lease expired');
-    await send(sub.email,'New discussions · Bittrees Forum',job.text,'forum-digest/'+job.id);
+    try{await send(sub.email,'New discussions · Bittrees Forum',job.text,'forum-digest/'+job.id);}catch{failed++;continue;}
     await command(['EVAL',`local s=redis.call('GET',KEYS[1]);if s and cjson.decode(s).token==ARGV[1] then local v=cjson.decode(s);v.cursor=tonumber(ARGV[2]);v.nextCheck=tonumber(ARGV[3]);v.delivered=cjson.decode(ARGV[4]);redis.call('SET',KEYS[1],cjson.encode(v));end;redis.call('DEL',KEYS[2]);return 1`,2,prefix+'subscriber:'+id,prefix+'job:'+id,job.owner,job.cursor,now()+86400000,JSON.stringify(job.delivered)]);
     sent++;
    }
-   return {sent,blocked};
+   return {sent,blocked,failed};
   }finally{await command(['EVAL',"if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1]) end;return 0",1,prefix+'worker',lock]);}
  }
  return {subscribe,manage,deliver};

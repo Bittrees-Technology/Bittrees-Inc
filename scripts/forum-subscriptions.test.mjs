@@ -20,12 +20,12 @@ test('Redis-backed confirmation, idempotent retry, uncertain-delivery cutoff and
   const service=createSubscriptions({command,now:()=>now,ready:()=>true,feed:async()=>posts,request:async(_url,opts)=>{calls.push({key:opts.headers['Idempotency-Key'],body:JSON.parse(opts.body)});if(fail)throw Error('ack lost');return {ok:true,json:async()=>({id:'provider-id'})};}});
   await service.subscribe('reader@example.com','test-ip');assert.equal(calls.length,1);
   const secret=calls[0].body.text.match(/forum-email=([a-f0-9]{64})/)[1];
-  assert.deepEqual(await service.deliver(),{sent:0,blocked:0});
+  assert.deepEqual(await service.deliver(),{sent:0,blocked:0,failed:0});
   await service.manage(secret,'confirm');await service.manage(secret,'confirm');
   posts=[{id,title:'New discussion',url:'https://gov.bittrees.org/forum/'+id,time:now/1000+10}];now+=100000;
-  fail=true;await assert.rejects(service.deliver());const attempt=calls.at(-1);
+  fail=true;assert.equal((await service.deliver()).failed,1);const attempt=calls.at(-1);
   fail=false;assert.equal((await service.deliver()).sent,1);assert.deepEqual(calls.at(-1),attempt,'retry preserves exact payload and idempotency key');
-  posts=[{...posts[0],id:'0x'+'3'.repeat(64)}];fail=true;now+=86400000;await assert.rejects(service.deliver());const before=calls.length;
+  posts=[{...posts[0],id:'0x'+'3'.repeat(64)}];fail=true;now+=86400000;assert.equal((await service.deliver()).failed,1);const before=calls.length;
   now+=24*3600000;assert.equal((await service.deliver()).blocked,1);assert.equal(calls.length,before,'uncertain send never retries outside provider dedup window');
   await service.manage(secret,'unsubscribe');assert.equal((await service.deliver()).sent,0);
   await assert.rejects(service.manage('bad','confirm'));
