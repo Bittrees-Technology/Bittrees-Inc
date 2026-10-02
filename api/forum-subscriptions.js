@@ -4,6 +4,7 @@ export default async function handler(req,res){
  if(req.method==='GET'){
   if(req.query?.dispatch==='daily'){
    if(!cronAuthorized(req.headers.authorization))return res.status(401).json({error:'Unauthorized'});
+   if(!emailReady())return res.status(200).json({enabled:false});
    try{return res.status(200).json(await createSubscriptions().deliver());}catch{return res.status(503).json({error:'Delivery could not finish. Existing delivery state was retained.'});}
   }
   return res.status(200).json({emailReady:emailReady()});
