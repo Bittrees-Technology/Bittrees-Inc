@@ -117,5 +117,16 @@
         }
       ]
     }
-  ]
+  ],
+  "crons": [
+    {
+      "path": "/api/forum-subscriptions?dispatch=daily",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "functions": {
+    "api/forum-subscriptions.js": {
+      "maxDuration": 300
+    }
+  }
 }

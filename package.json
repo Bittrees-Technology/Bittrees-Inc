@@ -24,7 +24,8 @@
     "test:uri-compatibility": "node --test scripts/uri-decoder.test.mjs",
     "postbuild": "node scripts/build-seo.mjs",
     "test:seo": "node --test scripts/seo.test.mjs",
-    "test:forum": "playwright test -c playwright.forum.config.ts"
+    "test:forum": "playwright test -c playwright.forum.config.ts",
+    "test:forum-subscriptions": "node --test scripts/forum-subscriptions.test.mjs"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",
