@@ -1,3 +1,4 @@
+import { ForumSubscriptions } from "../components/ForumSubscriptions";
 import { useTopics } from "../lib/forum";
 import { Composer, PostCard } from "../components/forum";
 
@@ -25,6 +26,7 @@ export default function Forum() {
         </p>
       </header>
 
+      <ForumSubscriptions />
       <Composer />
 
       <section style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

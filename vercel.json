@@ -116,6 +116,34 @@
           "value": "noindex, follow"
         }
       ]
+    },
+    {
+      "source": "/forum-email.html",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
-  ]
+  ],
+  "crons": [
+    {
+      "path": "/api/forum-subscriptions?dispatch=daily",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "functions": {
+    "api/forum-subscriptions.js": {
+      "maxDuration": 300
+    }
+  }
 }
