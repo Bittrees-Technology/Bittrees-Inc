@@ -22,13 +22,13 @@ import Metaverse from "./pages/Metaverse";
 import TokenFlow from "./pages/TokenFlow";
 import Chirpy from "./pages/Chirpy";
 import { ConfigBanner } from "./components/ConfigBanner";
-import { FAMILY, GOV_LINKS, ROUTES } from "./lib/links";
+import { CHAT_URL, FAMILY, GOV_LINKS, ROUTES } from "./lib/links";
 
 const NAV = [
   { to: ROUTES.overview, label: "Home", end: true },
   { to: ROUTES.proposals, label: "Proposals", end: false },
   { to: ROUTES.forum, label: "Forum", end: false },
-  { to: ROUTES.messenger, label: "Chat", end: false },
+  { to: CHAT_URL, label: "Chat", end: false },
   { to: ROUTES.structure, label: "Structure", end: false },
   { to: ROUTES.mint, label: "BGOV", end: false },
 ];
@@ -240,8 +240,9 @@ const FOOTER_COLS: { title: string; links: FooterLinkDef[] }[] = [
     title: "Community",
     links: [
       { label: "Become a contributor", href: ROUTES.contribute },
-      { label: "Chat", href: ROUTES.messenger },
-      { label: "Chat preview", href: ROUTES.chirpy },
+      { label: "Chat", href: CHAT_URL, external: true },
+      { label: "About Chat", href: ROUTES.chirpy },
+      { label: "Governance messenger", href: ROUTES.messenger },
       { label: "X / Twitter", href: GOV_LINKS.twitter, external: true },
       { label: "Handbook (wiki)", href: GOV_LINKS.wiki, external: true },
     ],

@@ -12,7 +12,7 @@ export const publicPages: Record<string, { title: string; description: string }>
   "/code-of-conduct": { title: "Code of Conduct | Bittrees", description: "Read the Bittrees community code of conduct, including expectations for respectful participation and collaboration." },
   "/hq": { title: "Metaverse Headquarters | Bittrees", description: "Visit the Bittrees headquarters in Voxels and explore the organization's shared space in the metaverse." },
   "/69420": { title: "Revenue & Token Flow | Bittrees", description: "Explore the Bittrees revenue and token-flow model and how its components relate to the wider organization." },
-  "/chirpy": { title: "Chat — Messaging and connected email preview | Bittrees", description: "Explore Chat: wallet messaging and connected Bittrees Mail. Public launch, email forwarding and device recovery verification are still in progress." },
+  "/chirpy": { title: "Chat | Messaging, Email & Community | Bittrees", description: "Open Bittrees Chat for wallet messaging, community rooms, connected Bittrees Mail and updates from the Governance forum." },
 };
 export const privatePages = ["/admin", "/proposals/new", "/messenger"];
 export function routeSeo(pathname: string) {
