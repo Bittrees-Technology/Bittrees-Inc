@@ -1,3 +1,5 @@
+export const CHAT_URL = "https://chat.bittrees.org";
+
 /** Family + governance links and small formatting helpers for the gov app. */
 
 /** The Bittrees family of sites — surfaced in the header + footer. */
