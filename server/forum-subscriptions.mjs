@@ -23,7 +23,7 @@ export function createSubscriptions({command=redisCommand, request=fetch, now=()
   if(await get('subscriber:'+id))return;
   const secret=token(),digest=hash(secret),created=now();
   await set('token:'+digest,{id,email,created},172800);
-  const link=`https://gov.bittrees.org/forum#forum-email=${secret}`;
+  const link=`https://gov.bittrees.org/forum-email.html#forum-email=${secret}`;
   await send(email,'Confirm your Bittrees Forum subscription',`Confirm your subscription to a daily email digest of new Governance discussions:\n\n${link}\n\nOpen the link and select Confirm subscription. The link expires in 24 hours. If you did not request this, ignore this email.`, 'forum-confirm/'+digest);
  }
  async function manage(secret,action){
@@ -59,7 +59,7 @@ export function createSubscriptions({command=redisCommand, request=fetch, now=()
      const items=(await feed({since:Math.max(Math.floor(sub.created/1000),sub.cursor-86400),now:until,limit:0,command,request})).filter(p=>!seen.has(p.id));
      if(!items.length){await command(['EVAL',`local s=redis.call('GET',KEYS[1]);if s and cjson.decode(s).token==ARGV[1] then local v=cjson.decode(s);v.cursor=math.max(v.cursor,tonumber(ARGV[2]));v.nextCheck=tonumber(ARGV[3]);redis.call('SET',KEYS[1],cjson.encode(v));end;return 1`,1,prefix+'subscriber:'+id,sub.token,until,now()+86400000]);continue;}
      const links=items.map(p=>`${p.title}\n${p.url}`).join('\n\n');
-     job={owner:sub.token,created:now(),cursor:until,items:items.map(p=>p.id),delivered:[...(sub.delivered||[]),...items.map(p=>({id:p.id,time:p.time}))].filter(p=>p.time>=until-86400),id:token(),text:`New discussions in Bittrees Governance\n\n${links}\n\nRead the latest versions and replies on the forum.\n\nUnsubscribe: https://gov.bittrees.org/forum#forum-email=${sub.token}`};
+     job={owner:sub.token,created:now(),cursor:until,items:items.map(p=>p.id),delivered:[...(sub.delivered||[]),...items.map(p=>({id:p.id,time:p.time}))].filter(p=>p.time>=until-86400),id:token(),text:`New discussions in Bittrees Governance\n\n${links}\n\nRead the latest versions and replies on the forum.\n\nUnsubscribe: https://gov.bittrees.org/forum-email.html#forum-email=${sub.token}`};
      const claimed=(await command(['EVAL',`if redis.call('GET',KEYS[2])~=ARGV[1] then return false end;local j=redis.call('GET',KEYS[1]);if j then return j end;redis.call('SET',KEYS[1],ARGV[2]);return ARGV[2]`,2,prefix+'job:'+id,prefix+'worker',lock,JSON.stringify(job)])).result;
      if(!claimed)throw Error('Delivery lease expired');job=JSON.parse(claimed);
     }
