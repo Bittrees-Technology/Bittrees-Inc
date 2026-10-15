@@ -241,7 +241,6 @@ const FOOTER_COLS: { title: string; links: FooterLinkDef[] }[] = [
     links: [
       { label: "Become a contributor", href: ROUTES.contribute },
       { label: "Chat", href: CHAT_URL, external: true },
-      { label: "About Chat", href: ROUTES.chirpy },
       { label: "X / Twitter", href: GOV_LINKS.twitter, external: true },
       { label: "Handbook (wiki)", href: GOV_LINKS.wiki, external: true },
     ],
