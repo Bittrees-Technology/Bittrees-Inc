@@ -1,3 +1,4 @@
+import {ecosystemAccess} from '../server/ecosystem-client.mjs';
 import { createPublicClient, http, getAddress, parseUnits } from "viem";
 import { mainnet } from "viem/chains";
 import { normalize } from "viem/ens";
@@ -33,7 +34,14 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const ROLES_KEY = "bittrees:roles"; // { <addrLower>: [{ label, color }] }
 
 /** Read current role authority. Unavailability must not look like revocation. */
-async function readRoles() {
+async function readRoles(user,access,rules=[]) {
+  const shared=await access('gov',[user.toLowerCase()]);
+  if(shared.enrolled){
+    const tiers={'partner':'tier.partner','junior partner':'tier.junior-partner','associate':'tier.associate'};
+    if(rules.some(r=>r?.kind==='role'&&(shared.unavailableTiers||[]).includes(tiers[String(r.label||r.role||'').toLowerCase()])))throw Error('BGOV check unavailable');
+    const labels={'tier.partner':'Partner','tier.junior-partner':'Junior Partner','tier.associate':'Associate',...Object.fromEntries(shared.actions.filter(a=>a.startsWith('role.')).map(a=>[a,a.slice(5)]))};
+    return {[user.toLowerCase()]:shared.actions.filter(a=>labels[a]).map(a=>({label:labels[a]}))};
+  }
   if (!KV_URL || !KV_TOKEN) throw Error("Role source unavailable");
   try {
     const r = await fetch(KV_URL, {
@@ -243,7 +251,7 @@ async function evalRule(rule, user, roles) {
   return false;
 }
 
-export default async function handler(req, res) {
+export function createGateHandler({sharedAccess=ecosystemAccess}={}){return async function handler(req, res) {
   res.setHeader("access-control-allow-origin", "*");
   res.setHeader("cache-control", "no-store");
   try {
@@ -289,7 +297,7 @@ export default async function handler(req, res) {
       // Load the roles registry once if any rule is role-gated.
       const usesRoles = rules.some((r) => r?.kind === "role");
       let roles;
-      try { roles = usesRoles ? await readRoles() : {}; }
+      try { roles = usesRoles ? await readRoles(user,sharedAccess,rules) : {}; }
       catch { res.status(503).json({ access: false, roleSourceReady: false, error: "Role source unavailable" }); return; }
       const results = await Promise.all(rules.map((r) => evalRule(r, user, roles)));
       const ok = combine === "all" ? results.every(Boolean) : results.some(Boolean);
@@ -329,3 +337,6 @@ export default async function handler(req, res) {
     res.status(500).json({ error: String((e && e.message) || e) });
   }
 }
+
+}
+export default createGateHandler();
