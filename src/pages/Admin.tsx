@@ -1,3 +1,4 @@
+import {useAuthorityAccess} from '../lib/authorityAccess';
 import type { WalletClient } from "viem";
 import { usePush, usePushSessionKey } from "../lib/usePush";
 import { useEffect, useRef, useState } from "react";
@@ -72,6 +73,7 @@ type AdminTabKey = (typeof ADMIN_TABS)[number]["key"];
 
 function AdminConsole({ address, level }: { address: `0x${string}`; level: AdminLevel }) {
   const pushSessionKey = usePushSessionKey();
+  const shared=useAuthorityAccess(address);
   // Moderators see only the Moderation tab; full admins see everything.
   const tabs = level === "moderation" ? ADMIN_TABS.filter((t) => t.key === "moderation") : ADMIN_TABS;
   const [tab, setTab] = useState<AdminTabKey>(tabs[0].key);
@@ -84,7 +86,7 @@ function AdminConsole({ address, level }: { address: `0x${string}`; level: Admin
       </div>
       {tab === "settings" && <SpaceSettings address={address} />}
       {tab === "rooms" && <CommunityRoomsAdmin key={pushSessionKey} address={address} />}
-      {tab === "roles" && <RolesAdmin address={address} />}
+      {tab === "roles" && (shared.data?.configured ? <section className="card"><h2>Shared roles</h2><p>Partner roles, BGOV eligibility and project staff assignments are managed in Roles.</p><a href="https://roles.bittrees.org">Manage roles</a></section> : <RolesAdmin address={address} />)}
       {tab === "moderation" && <ModerationQueue address={address} />}
       {tab === "applications" && <ContributorApplications />}
     </div>

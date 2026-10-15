@@ -4,7 +4,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { base, wagmiConfig } from "../lib/chains";
 import { getWalletClient } from "@wagmi/core";
 import { publishPost, CONTRIB_COMMUNITY, useSchemaRegistered } from "../lib/forum";
-import { fetchCommunity, opsHolders } from "../lib/community";
+import { fetchCommunity, currentReviewers } from "../lib/community";
 import { deriveEncKeypair, encryptApplication, pubKeyFromHex, type Application } from "../lib/appcrypto";
 import { shortAddress } from "../lib/links";
 import { ChipMultiSelect, SearchMultiSelect } from "../components/multiselect";
@@ -88,7 +88,7 @@ export default function Contribute() {
       // Derive my key (also a recipient) and gather the reviewers' published keys.
       const { publicKey } = await deriveEncKeypair(wc, address);
       const community = await fetchCommunity();
-      const reviewers = opsHolders(community.roles)
+      const reviewers = currentReviewers(community)
         .map((a) => ({ addr: a, hex: community.enckeys[a] }))
         .filter((r) => /^[0-9a-f]{64}$/.test(r.hex || ""))
         .map((r) => ({ addr: r.addr, pub: pubKeyFromHex(r.hex) }));

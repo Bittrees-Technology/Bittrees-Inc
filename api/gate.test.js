@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 
 process.env.KV_REST_API_URL = 'https://roles.invalid';
 process.env.KV_REST_API_TOKEN = 'synthetic-test-token';
-const { default: handler } = await import('./gate.js');
+const { createGateHandler } = await import('./gate.js');
+const handler=createGateHandler({sharedAccess:async()=>({enrolled:false})});
 const owner = '0xE5350D96FC3161BF5c385843ec5ee24E8B465B2f';
 const stranger = `0x${'2'.repeat(40)}`;
 const gate = Buffer.from(JSON.stringify({ kind: 'multi', combine: 'any', rules: [{ kind: 'role', role: 'Partner' }] })).toString('base64url');
@@ -60,4 +61,18 @@ test('role-source outages stay unavailable rather than looking like removed role
   fetch.mock.mockImplementation(async () => ({ ok: true, json: async () => ({ result: JSON.stringify({ [owner]: [{ label: 'Partner' }] }) }) }));
   const allowed = await check(`eip155:${owner}`);
   assert.equal(allowed.code, 200); assert.equal(allowed.body.roleSourceReady, true);
+});
+
+test('central tier decisions replace legacy assignments and an outage cannot restore them',async()=>{
+ let actions=['tier.partner'];const shared=createGateHandler({sharedAccess:async()=>({enrolled:true,authoritative:true,actions})});
+ const req={query:{p:`multi/${gate}/${owner}/checkAccess`}};
+ const response=()=>({setHeader(){},status(code){this.code=code;return this},json(body){this.body=body;}});
+ let res=response();await shared(req,res);assert.equal(res.code,200);
+ actions=[];res=response();await shared(req,res);assert.equal(res.code,403);
+ const unavailable=createGateHandler({sharedAccess:async()=>{throw Error('outage')}});res=response();await unavailable(req,res);assert.equal(res.code,503);
+});
+
+test('unavailable BGOV evidence yields a retryable error instead of a role revocation',async()=>{
+ const h=createGateHandler({sharedAccess:async()=>({enrolled:true,authoritative:true,actions:[],unavailableTiers:['tier.partner']})});
+ const res={setHeader(){},status(code){this.code=code;return this},json(body){this.body=body;}};await h({query:{p:`multi/${gate}/${owner}/checkAccess`}},res);assert.equal(res.code,503);
 });
