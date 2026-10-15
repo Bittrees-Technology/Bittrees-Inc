@@ -13,7 +13,7 @@ npm start
 
 Open http://127.0.0.1:4348. The server binds only to loopback. Records use the explicitly displayed review date **October 15, 2026**. All people, wallets, permissions, acknowledgments and issuance receipts are fixtures. No wallet connection, signature request, notification, upload, shared database write, public deployment or token payment occurs.
 
-Sample state is persisted privately in `.state/review.json` (mode 0600), with serialized updates and atomic replacement. Reset sample records restores the original three people. This is local fixture storage, not a production persistence adapter. Sessions are in memory and reset when the server restarts. The persona selector is deliberately a simulation control, not authentication.
+Sample state is persisted privately in `.state/review-v2.json` (mode 0600), with serialized updates and atomic replacement. Reset sample records restores the five sample people across Governance and Research. This is local fixture storage, not a production persistence adapter. Sessions are in memory and reset when the server restarts. The persona selector is deliberately a simulation control, not authentication.
 
 ## Suggested walkthrough
 
@@ -21,19 +21,19 @@ Sample state is persisted privately in `.state/review.json` (mode 0600), with se
 2. Write a decision note and Accept application. Acceptance does not create a token or a role grant.
 3. Open Credentials. Prepare a memorandum, choose level/rank and effective dates.
 4. View as Alex. Read the memo and acknowledge the exact version (simulated).
-5. Switch back to Operations and Issue sample credential.
+5. Switch back to Partner and Issue sample credential.
 6. Open Monthly review. Validate October 15 using a short evidence note. The period is validated but the amount remains unconfigured and no payout is created.
 7. Open Roles profile to see the proposed private profile projection.
 8. In Credentials, suspend the sample credential with a reason. New monthly validation is blocked. Old records remain.
 9. Reset. Choose the reviewer without decision authority and attempt a final decision: it remains Awaiting authority. The unassigned persona cannot read applications.
-10. Inspect Maya's seeded credential, or Noor's information request. Only Alex has an applicant persona in this review.
+10. Inspect Maya's seeded credential, or Noor's information request. Alex and Research applicant Rhea have acknowledgment personas. The new-applicant persona can submit either interest form.
 
-Rejection is final for an application; a later application must be a separate record. The UI explains reapplication but does not yet provide its submission flow. Monthly adjustments, segmented periods and applicant replies are also explicit follow-up work.
+Rejection is final for an application; a later application must be a separate record. A rejected applicant can submit a fresh interest form. Monthly adjustments, segmented periods and applicant replies are also explicit follow-up work.
 
 ## What is implemented
 
 - Reviewer/applicant views with bounded record visibility and server-derived fixture actors.
-- Separate reviewer eligibility and final-decision authority, scoped to the Governance lane.
+- Separate reviewer eligibility and final-decision authority, scoped independently to Governance and Research lanes.
 - Start review, request information, resume, accept and reject; immutable final decisions; version checks preventing concurrent overwrites.
 - Versioned memo drafts, exact-version acknowledgment and sample issuance. Old accepted terms are preserved when amendments are drafted.
 - Contribution level and recognition rank independent from standing. No capability grants or access provisioning.
@@ -88,3 +88,38 @@ npm run test:contracts
 ```
 
 Browser tests use a separate loopback port and fixture file. Contract tests run in Foundry's in-memory EVM using dummy signing keys. They do not call live RPC services. The current suite covers workflow authorization, optimistic version conflicts, invalid dates, exact-version consent, no automatic grants, no transfers, stale signature replay, expiry, recovery and browser/mobile layout.
+
+## Governance and Research administration
+
+The dedicated contributor workspace is proposed at `/admin/contributors` on each site, linked from its existing `/admin` page. The isolated review uses `/gov/admin/contributors` and `/research/admin/contributors`; `/gov/admin` and `/research/admin` preview the Admin entry. `/gov/contribute` and `/research/contribute` preview interest forms. These do not replace production routes yet.
+
+To run Research separately: `REVIEW_SITE=research REVIEW_PORT=4350 npm start`. Each checkout has its own private fixture store. Neither copy reads or synchronizes live records. A future shared package should provide the common schema and policy implementation to prevent divergent copies.
+
+The server resolves the actor and project scope. A Partner can directly change standing within that scope. Junior Partners and Associates can propose standing, level or recognition changes; a scoped Partner must approve or reject with a reason. Proposals record their target credential revision; stale proposals cannot overwrite newer changes. Final proposal decisions are immutable. A terms approval creates a new memo draft and leaves the current credential unchanged until acknowledgment and issuance. No title, checkbox, requested role, legacy Executive/Assistant label or recognition rank confers Partner authority.
+
+The dedicated Directory includes accepted applications only. Staff can maintain ENS, sector, groups, group leadership, title, specialties, other positions, private notes and follow-up. Start date derives from the first issued memo; validation, standing and current memo derive from their respective records. Staff-only directory fields and proposals are excluded from applicant responses.
+
+Production must resolve Partner/status authority from the existing server-authorized Roles policy, separately for each project. Only the approved Partner executor may hold the contract STATUS_ROLE; Junior Partners and Associates must never receive it to enable proposals. Off-chain approval must be linked to a confirmed transaction before projecting a live status. The contract candidate itself does not implement the proposal queue.
+
+## Historical form and directory mapping
+
+Sources reviewed locally: `BITTREES CONTRIBUTOR APPLICATION  (Responses) - Form Responses 1.pdf` and `Master Contributor Directory - Contributor Directory.pdf`. No personal rows from those documents are included in this workspace.
+
+| Historical field | Review representation |
+| --- | --- |
+| Timestamp | Server-created application date; future import retains original timestamp separately |
+| Name, email, Twitter, Telegram | Private application contact fields |
+| Area of expertise, expert field | Separate expertise selections and expert-field text |
+| Specialty / contribution interests | Applicant scope statement; not an accepted memo |
+| Region, how heard, referrer | Application fields; languages retained from current site forms |
+| Preferred ETH wallet | Separate payout-wallet field; mismatch with sample session is unverified and blocks memo preparation |
+| Research requested roles | Separate Research-only selections; never capability grants |
+| Follow up, start date | Staff follow-up; start date derived from issued memo |
+| Contributor ID, ENS, sector, group leader, group | Accepted contributor directory |
+| Title, specialty 1/2, other positions, notes | Staff-maintained directory fields |
+| Status, status change | Current standing plus audited transitions and Partner decisions |
+| Level, rate | Agreed memo level; allocation rate remains unconfigured |
+| Last validation | Latest validated contribution period |
+| Current/live memorandum | Issued version and credential reference; drafts are separately displayed |
+
+Future imports must stage historical status, rate, validation date and memo references as unverified evidence, reconcile duplicate identities, preserve source IDs/timestamps and obtain a Partner decision before promoting records. Historical spreadsheet status does not activate a token or payment. No import has been performed. Email-to-wallet identity linking, agent delegation, live Roles profile sync, applicant replies and notification delivery remain production integration work.
