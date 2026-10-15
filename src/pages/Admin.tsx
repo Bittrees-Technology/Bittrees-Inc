@@ -86,7 +86,7 @@ function AdminConsole({ address, level }: { address: `0x${string}`; level: Admin
       </div>
       {tab === "settings" && <SpaceSettings address={address} />}
       {tab === "rooms" && <CommunityRoomsAdmin key={pushSessionKey} address={address} />}
-      {tab === "roles" && (shared.data?.configured ? <section className="card"><h2>Shared roles</h2><p>Partner roles, BGOV eligibility and project staff assignments are managed in Roles.</p><a href="https://roles.bittrees.org">Manage roles</a></section> : <RolesAdmin address={address} />)}
+      {tab === "roles" && (shared.data?.configured ? <section className="card"><h2>Shared roles</h2><p>Partner roles, BGOV eligibility and project staff assignments are managed in Roles.</p><a href="https://roles.bittrees.org/role-management?project=gov">Manage roles</a></section> : <RolesAdmin address={address} />)}
       {tab === "moderation" && <ModerationQueue address={address} />}
       {tab === "applications" && <ContributorApplications />}
     </div>
