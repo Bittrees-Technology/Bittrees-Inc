@@ -26,7 +26,7 @@
     "test:seo": "node --test scripts/seo.test.mjs",
     "test:forum": "playwright test -c playwright.forum.config.ts",
     "test:forum-subscriptions": "node --test scripts/forum-subscriptions.test.mjs",
-    "test:contributors": "node --test server/contributors/contributors.test.mjs",
+    "test:contributors": "node --test server/contributors/*.test.mjs",
     "test:contributors-browser": "playwright test -c playwright.contributors.config.ts"
   },
   "dependencies": {
