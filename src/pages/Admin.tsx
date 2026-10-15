@@ -43,6 +43,7 @@ export default function Admin() {
         </p>
       </header>
 
+      <Link to="/admin/contributors">Open contributor administration — applications, memoranda and contributions</Link>
       {!isConnected ? (
         <div className="card" style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
           <p style={{ ...dim, margin: 0 }}>Connect a wallet.</p>

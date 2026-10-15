@@ -28,3 +28,6 @@ playwright-report/
 
 # Local visual verification output
 artifacts/seo/
+
+# Contributor visual review output
+/artifacts/contributor-*

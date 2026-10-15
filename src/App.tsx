@@ -9,6 +9,7 @@ import Overview from "./pages/Overview";
 import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
 import NewProposal from "./pages/NewProposal";
+import Contributors from "./pages/Contributors";
 import Admin from "./pages/Admin";
 import Structure from "./pages/Structure";
 import Mint from "./pages/Mint";
@@ -49,6 +50,8 @@ export default function App() {
             <Route path="/" element={<Overview />} />
             <Route path="/proposals" element={<Proposals />} />
             <Route path={ROUTES.newProposal} element={<NewProposal />} />
+            <Route path="/admin/contributors" element={<Contributors />} />
+            <Route path="/contributors/apply" element={<Contributors apply />} />
             <Route path={ROUTES.admin} element={<Admin />} />
             <Route path="/proposals/:id" element={<ProposalDetail />} />
             <Route path="/structure" element={<Structure />} />

@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import { useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -112,6 +113,7 @@ export default function Contribute() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", maxWidth: "680px", margin: "0 auto", width: "100%" }}>
       <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
+        <p><Link to="/contributors/apply">Apply with email in the new contributor portal</Link></p>
         <p className="text-label">Bittrees, Inc.</p>
         <h1 className="text-display">Become a contributor</h1>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: "0.5rem" }}>
