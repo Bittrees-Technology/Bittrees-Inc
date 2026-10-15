@@ -45,10 +45,6 @@
       "destination": "/seo/69420.html"
     },
     {
-      "source": "/chirpy",
-      "destination": "/seo/chirpy.html"
-    },
-    {
       "source": "/admin",
       "destination": "/seo/workspace.html"
     },
@@ -149,6 +145,11 @@
   "redirects": [
     {
       "source": "/messenger",
+      "destination": "https://chat.bittrees.org",
+      "permanent": true
+    },
+    {
+      "source": "/chirpy",
       "destination": "https://chat.bittrees.org",
       "permanent": true
     }
