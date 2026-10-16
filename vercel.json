@@ -182,6 +182,9 @@
   "functions": {
     "api/forum-subscriptions.js": {
       "maxDuration": 300
+    },
+    "api/contributor-artwork.js": {
+      "includeFiles": "public/bittrees_logo_tree.png"
     }
   },
   "redirects": [
