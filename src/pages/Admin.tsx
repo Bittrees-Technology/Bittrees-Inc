@@ -31,7 +31,7 @@ export default function Admin() {
   const level = useAdminAccess(address);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", maxWidth: "780px", margin: "0 auto", width: "100%" }}>
+    <div className="gov-admin" style={{ display: "flex", flexDirection: "column", gap: "1.75rem", maxWidth: "780px", margin: "0 auto", width: "100%" }}>
       <Link to={ROUTES.proposals} style={{ fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--color-ink-muted)", textDecoration: "none" }}>← Governance</Link>
       <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.25rem" }}>
         <p className="text-label">Admin</p>
