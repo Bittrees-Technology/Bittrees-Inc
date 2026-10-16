@@ -1,0 +1,24 @@
+import {test,expect} from '@playwright/test';
+test('Gov Roles reflects shared changes and fails closed without legacy editors',async({page})=>{
+ const wallet='0x1111111111111111111111111111111111111111';let mode='partner';
+ await page.route('https://insights.bittrees.org/consent.js',r=>r.abort());
+ await page.addInitScript(({wallet})=>{let connected=false;(window as any).ethereum={isMetaMask:true,on(){},removeListener(){},async request({method}:any){if(method==='eth_accounts')return connected?[wallet]:[];if(method==='eth_requestAccounts'){connected=true;return[wallet];}if(method==='eth_chainId')return '0x1';throw Error('Unexpected signature');}};},{wallet});
+ await page.route('**/api/authority-access?*',r=>mode==='error'?r.fulfill({status:503,json:{error:'Unavailable'}}):r.fulfill({json:{configured:mode!=='legacy',permissions:mode==='partner'?['community.roles.manage','rooms.propose']:[],roles:mode==='partner'?[{label:'Partner'},{label:'Junior Partner'},{label:'Associate'}]:[],expiresAt:Date.now()+30000}}));
+ await page.route('**/api/community',r=>r.fulfill({json:{roles:{[wallet]:[{label:'Legacy admin'}]},roledefs:[],flags:{},enckeys:{}}}));
+ await page.route('**/graphql',r=>r.fulfill({json:{data:{attestations:[]}}}));
+ await page.route('**/api/contributors',r=>r.fulfill({json:{session:null}}));
+ await page.goto('/admin');await page.getByRole('button',{name:'Connect Wallet',exact:true}).click();await page.getByRole('button',{name:/^MetaMask(?:\s|$)/}).click();
+ await page.getByRole('button',{name:'Roles',exact:true}).click();
+ const panel=page.getByRole('region',{name:'Shared Gov roles'});
+ await expect(panel.getByRole('cell',{name:'Partner',exact:true})).toBeVisible();
+ await expect(panel.getByText('Junior Partner',{exact:true})).toHaveCount(0);
+ await expect(panel.getByRole('link',{name:'Manage Gov roles'})).toHaveAttribute('href','https://roles.bittrees.org/role-management?project=gov&view=all');
+ mode='none';await panel.getByRole('button',{name:'Refresh roles'}).click();
+ await expect(panel.getByText('No Gov administration permissions',{exact:true})).toBeVisible();
+ await expect(panel.getByRole('cell',{name:'Partner',exact:true})).toHaveCount(0);
+ mode='error';await panel.getByRole('button',{name:'Refresh roles'}).click();
+ await expect(panel.getByRole('alert')).toContainText('could not be verified');await expect(panel.getByRole('table')).toHaveCount(0);
+ mode='legacy';await panel.getByRole('button',{name:'Refresh roles'}).click();
+ await expect(panel.getByRole('status')).toContainText('not active');await expect(panel.getByText('Legacy admin')).toHaveCount(0);
+ await expect(panel.getByRole('textbox')).toHaveCount(0);
+});

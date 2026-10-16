@@ -1,6 +1,6 @@
 import ReviewerAccessSettings, {useReviewerSetupAccess} from '../components/ReviewerAccessSettings';
 import Contributors from './Contributors';
-import {useAuthorityAccess} from '../lib/authorityAccess';
+import SharedGovRoles from '../components/SharedGovRoles';
 import type { WalletClient } from "viem";
 import { usePush, usePushSessionKey } from "../lib/usePush";
 import { useEffect, useRef, useState } from "react";
@@ -12,7 +12,7 @@ import { fetchSpaceSettings, updateSpaceSettings } from "../lib/snapshot";
 import { useAdminAccess, type AdminLevel } from "../lib/adminAccess";
 import { BGOV_ROOMS, SAFE_ROOMS, ROOM_ADMINS, createGatedGroup, gateUrl, gateLabel, type PushRoom, type PushClient, type RoomGate, type RoomRule } from "../lib/push";
 import { useRoomRegistry, saveRoomChatId, saveCustomRoom, deleteCustomRoom, approveRoomProposal, rejectRoomProposal, type RoomProposal } from "../lib/rooms";
-import { assignRole, unassignRole, createRole, deleteRole, selectableRoles, useCommunity, moderateItem, TIER_ROLES } from "../lib/community";
+import { selectableRoles, useCommunity, moderateItem } from "../lib/community";
 import { EASSCAN_VIEW } from "../lib/forum";
 import { CHAT_URL, ROUTES, shortAddress } from "../lib/links";
 import { useRoomGate, RoomGateBuilder } from "../components/RoomGateBuilder";
@@ -53,7 +53,7 @@ const ADMIN_TABS = [
   { key: "reviewer-settings", label: "Admin settings" },
   { key: "settings", label: "Space settings" },
   { key: "rooms", label: "Community rooms" },
-  { key: "roles", label: "Roles & tags" },
+  { key: "roles", label: "Roles" },
   { key: "moderation", label: "Moderation" },
   { key: "applications", label: "Contributor applications" },
 ] as const;
@@ -61,10 +61,9 @@ type AdminTabKey = (typeof ADMIN_TABS)[number]["key"];
 
 function AdminConsole({ address, level }: { address: `0x${string}`; level: AdminLevel }) {
   const pushSessionKey = usePushSessionKey();
-  const shared=useAuthorityAccess(address);
   const reviewerSetup=useReviewerSetupAccess(address);
   // Moderators see only the Moderation tab; full admins see everything.
-  const tabs = level === "none" ? ADMIN_TABS.filter(t=>(t.key==="applications"||(t.key==="reviewer-settings"&&reviewerSetup))) : level === "moderation" ? ADMIN_TABS.filter(t=>t.key==="moderation"||t.key==="applications"||(t.key==="reviewer-settings"&&reviewerSetup)) : ADMIN_TABS.filter(t=>t.key!=="reviewer-settings"||reviewerSetup);
+  const tabs = level === "none" ? ADMIN_TABS.filter(t=>(t.key==="roles"||t.key==="applications"||(t.key==="reviewer-settings"&&reviewerSetup))) : level === "moderation" ? ADMIN_TABS.filter(t=>t.key==="moderation"||t.key==="roles"||t.key==="applications"||(t.key==="reviewer-settings"&&reviewerSetup)) : ADMIN_TABS.filter(t=>t.key!=="reviewer-settings"||reviewerSetup);
   const [selectedTab, setTab] = useState<AdminTabKey>("applications");
   const tab=tabs.some(t=>t.key===selectedTab)?selectedTab:tabs[0].key;
   return (
@@ -77,7 +76,7 @@ function AdminConsole({ address, level }: { address: `0x${string}`; level: Admin
       {tab === "reviewer-settings" && <ReviewerAccessSettings address={address} />}
       {tab === "settings" && <SpaceSettings address={address} />}
       {tab === "rooms" && <CommunityRoomsAdmin key={pushSessionKey} address={address} />}
-      {tab === "roles" && (shared.data?.configured ? <section className="card"><h2>Shared roles</h2><p>Partner roles, BGOV eligibility and project staff assignments are managed in Roles.</p><a href="https://roles.bittrees.org/role-management?project=gov">Manage roles</a></section> : <RolesAdmin address={address} />)}
+      {tab === "roles" && <SharedGovRoles address={address} />}
       {tab === "moderation" && <ModerationQueue address={address} />}
       {tab === "applications" && <Contributors embedded />}
     </div>
@@ -494,195 +493,6 @@ function CustomRoomManager({ push, address, walletClient }: { push: PushClient; 
         </div>
       )}
     </div>
-  );
-}
-
-/* ── Roles & tags — create a role catalog, then assign from a dropdown ──────── */
-const roleBadge = (label: string, color?: string) => ({
-  fontFamily: "var(--font-sans)", fontSize: "0.62rem", fontWeight: 700, textTransform: "uppercase" as const,
-  letterSpacing: "0.06em", color: color || "var(--color-secondary)",
-  border: `1px solid ${color || "var(--color-secondary)"}`, borderRadius: "999px", padding: "0.05rem 0.4rem",
-});
-
-function RolesAdmin({ address }: { address: `0x${string}` }) {
-  const { data: walletClient } = useWalletClient();
-  const { data: community } = useCommunity();
-  const roles = community?.roles;
-  const roledefs = community?.roledefs;
-  const qc = useQueryClient();
-
-  // assign-an-existing-role
-  const [target, setTarget] = useState("");
-  const [label, setLabel] = useState(""); // the selected role's label
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-
-  // create-a-new-role
-  const [newLabel, setNewLabel] = useState("");
-  const [newColor, setNewColor] = useState("#3A923A");
-  const [newDesc, setNewDesc] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string>();
-
-  const options = selectableRoles(roledefs);
-  const selected = options.find((o) => o.label === label);
-  const canAssign = (isAddress(target.trim()) || target.trim().includes(".")) && !!selected;
-
-  async function assign() {
-    if (!walletClient || !selected) { setError("Pick a role and enter an address or ENS name."); return; }
-    setBusy(true);
-    setError(undefined);
-    try {
-      let t = target.trim();
-      if (t.includes(".")) {
-        const resolved = await getEnsAddress(wagmiConfig, { name: normalize(t), chainId: mainnet.id });
-        if (!resolved) throw new Error("That ENS name doesn't resolve to an address.");
-        t = resolved;
-      }
-      if (!isAddress(t)) throw new Error("Enter a valid 0x address or ENS name.");
-      await assignRole({ walletClient, account: address, target: getAddress(t), label: selected.label, color: selected.color });
-      qc.invalidateQueries({ queryKey: ["community"] });
-      setTarget("");
-      setLabel("");
-    } catch (e) {
-      setError(humanError(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function remove(addr: string, lbl: string) {
-    if (!walletClient) return;
-    setBusy(true);
-    setError(undefined);
-    try {
-      await unassignRole({ walletClient, account: address, target: addr, label: lbl });
-      qc.invalidateQueries({ queryKey: ["community"] });
-    } catch (e) {
-      setError(humanError(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function create() {
-    if (!walletClient || newLabel.trim().length === 0) { setCreateError("Enter a role name."); return; }
-    if (options.some((o) => o.label.toLowerCase() === newLabel.trim().toLowerCase())) { setCreateError(`Role "${newLabel.trim()}" already exists.`); return; }
-    setCreating(true);
-    setCreateError(undefined);
-    try {
-      await createRole({ walletClient, account: address, label: newLabel.trim(), color: newColor, description: newDesc.trim() });
-      qc.invalidateQueries({ queryKey: ["community"] });
-      setNewLabel("");
-      setNewDesc("");
-      setNewColor("#3A923A");
-    } catch (e) {
-      setCreateError(humanError(e));
-    } finally {
-      setCreating(false);
-    }
-  }
-  async function destroy(lbl: string) {
-    if (!walletClient) return;
-    setCreating(true);
-    setCreateError(undefined);
-    try {
-      await deleteRole({ walletClient, account: address, label: lbl });
-      qc.invalidateQueries({ queryKey: ["community"] });
-    } catch (e) {
-      setCreateError(humanError(e));
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  const entries = Object.entries(roles ?? {});
-
-  return (
-    <section style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div>
-        <p className="text-label">Roles &amp; tags</p>
-        <p style={{ ...dim, margin: "0.25rem 0 0", lineHeight: 1.55 }}>
-          First <strong>create a role</strong> (a reusable label + colour), then <strong>assign</strong> it to an
-          address — it shows as a badge next to their posts in the forum and messages in chat, alongside the
-          one automatic tier (Shareholder, ≥1 BGOV). Needs the registry (Vercel KV) connected.
-        </p>
-      </div>
-
-      {/* 1 ─ Create a role (the catalog) */}
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        <p className="text-label" style={{ margin: 0 }}>Create a role</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center" }}>
-          <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Role name (e.g. Core, Treasury)" maxLength={32} style={{ ...inputStyle, width: "210px" }} />
-          <input type="color" value={newColor} onChange={(e) => setNewColor(e.target.value)} title="Badge colour" style={{ width: "40px", height: "34px", border: "1px solid var(--color-border)", borderRadius: "2px", background: "#fff", cursor: "pointer", padding: 0 }} />
-          <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="What it's for (optional)" maxLength={200} style={{ ...inputStyle, flex: 1, minWidth: "200px" }} />
-          <button className="btn-primary" disabled={creating || newLabel.trim().length === 0} onClick={create} style={{ opacity: creating || newLabel.trim().length === 0 ? 0.55 : 1 }}>
-            {creating ? "Saving…" : "Create role"}
-          </button>
-        </div>
-        {createError && <p role="alert" style={{ ...dim, color: "var(--color-ink)", margin: 0 }}>{createError}</p>}
-
-        {/* the catalog — built-ins (locked) + created roles */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", marginTop: "0.2rem" }}>
-          {options.map((o) => (
-            <div key={o.label} style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
-              <span style={roleBadge(o.label, o.color)}>{o.label}</span>
-              {o.description && <span style={{ ...dim, margin: 0 }}>{o.description}</span>}
-              {o.locked
-                ? <span style={{ ...dim, margin: 0, fontStyle: "italic" }}>built-in</span>
-                : <button data-insights="delete" onClick={() => destroy(o.label)} disabled={creating} aria-label={`Delete role ${o.label}`} style={{ background: "none", border: "none", cursor: "pointer", color: "#9a2a2a", fontSize: "0.78rem", padding: 0 }}>Delete</button>}
-            </div>
-          ))}
-        </div>
-        <p style={{ ...dim, margin: 0 }}>Deleting a role also removes it from everyone it was assigned to. <code style={mono}>Operations</code> + <code style={mono}>Moderator</code> are built in and carry powers.</p>
-      </div>
-
-      {/* 2 ─ Assign a role (dropdown of created + built-in roles) */}
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-        <p className="text-label" style={{ margin: 0 }}>Assign a role</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", alignItems: "center" }}>
-          <input value={target} onChange={(e) => setTarget(e.target.value)} placeholder="0x address or name.eth" style={{ ...inputStyle, flex: 1, minWidth: "220px", fontSize: "0.8rem" }} />
-          <select value={label} onChange={(e) => setLabel(e.target.value)} style={{ ...inputStyle, width: "210px" }}>
-            <option value="">Select a role…</option>
-            {options.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
-          </select>
-          <span aria-hidden style={{ width: "34px", height: "34px", borderRadius: "2px", border: "1px solid var(--color-border)", background: selected?.color || "transparent" }} title={selected ? `${selected.label} colour` : "role colour"} />
-          <button className="btn-primary" disabled={!canAssign || busy} onClick={assign} style={{ opacity: !canAssign || busy ? 0.55 : 1 }}>
-            {busy ? "Saving…" : "Assign"}
-          </button>
-        </div>
-        {options.length === 0 && <p style={{ ...dim, margin: 0 }}>No roles yet — create one above first.</p>}
-        {error && <p role="alert" style={{ ...dim, color: "var(--color-ink)", margin: 0 }}>{error}</p>}
-      </div>
-
-      {/* 3 ─ Reference: the one automatic tier + the manual tier roles */}
-      <div className="card" style={{ background: "var(--color-bg-subtle)", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-        <p className="text-label" style={{ margin: 0 }}>Tiers</p>
-        <p style={{ ...dim, margin: 0, lineHeight: 1.55 }}>
-          <strong>Shareholder</strong> (≥1 BGOV) is automatic — no assignment needed.
-        </p>
-        <p style={{ ...dim, margin: 0, lineHeight: 1.55 }}>
-          <strong>{TIER_ROLES.map((t) => t.label).join(", ")}</strong> are assigned per user (above) —
-          their rooms admit only wallets you've assigned the role. BGOV holdings don't grant access.
-        </p>
-      </div>
-
-      {entries.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          {entries.map(([addr, list]) => (
-            <div key={addr} className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-              <AddressName address={addr} avatar />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
-                {list.map((r) => (
-                  <span key={r.label} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
-                    <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.62rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: r.color || "var(--color-secondary)", border: `1px solid ${r.color || "var(--color-secondary)"}`, borderRadius: "999px", padding: "0.05rem 0.4rem" }}>{r.label}</span>
-                    <button onClick={() => remove(addr, r.label)} disabled={busy} aria-label={`Remove ${r.label}`} style={{ background: "none", border: "none", cursor: "pointer", color: "#9a2a2a", fontSize: "0.9rem", lineHeight: 1, padding: 0 }}>×</button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
   );
 }
 
