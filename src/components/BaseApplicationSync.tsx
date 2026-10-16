@@ -9,7 +9,7 @@ import {publishEncKey} from '../lib/community';
 function previewApplication(input:any){
  const result:Record<string,any>={_preview:true};
  for(const field of ['name','specialty','expertField','heardFrom','email','twitter','telegram','referrer','wallet'])result[field]=typeof input?.[field]==='string'?input[field].slice(0,20000):'';
- for(const field of ['expertise','region','languages','requestedRoles','roles'])result[field]=Array.isArray(input?.[field])?input[field].filter((v:any)=>typeof v==='string').slice(0,100):[];
+ for(const field of ['expertise','region','languages','requestedRoles','roles'])result[field]=Array.isArray(input?.[field])?input[field].filter((v:any)=>typeof v==='string').slice(0,100).map((v:string)=>v.slice(0,100)):[];
  return result;
 }
 export default function BaseApplicationSync({wallet,records,onImport,reviewer=false,renderApplications}:{wallet:string;records:any[];renderApplications?:(posts:any[],unlock:(p:any)=>void,busy:boolean)=>ReactNode;reviewer?:boolean;onImport:(uid:string,key:string)=>Promise<void>}){
@@ -18,7 +18,7 @@ export default function BaseApplicationSync({wallet,records,onImport,reviewer=fa
  const [unlocked,setUnlocked]=useState<any>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [batchNotice,setBatchNotice]=useState('');
  const [previews,setPreviews]=useState<Record<string,any>>({});
- const cache=useRef<Record<string,{application:any;key:string}>>({});
+ const cache=useRef<Record<string,{key:string}>>({});
  const generation=useRef(0),active=useRef(true),currentWallet=useRef(walletClient?.account?.address.toLowerCase());
  currentWallet.current=walletClient?.account?.address.toLowerCase();
  useEffect(()=>{active.current=true;return()=>{active.current=false;generation.current++;cache.current={};};},[]);
@@ -30,14 +30,14 @@ export default function BaseApplicationSync({wallet,records,onImport,reviewer=fa
   if(reviewer&&cache.current[p.id]){await onImport(p.id,cache.current[p.id].key);delete cache.current[p.id];return;}
   if(!walletClient||walletClient.account?.address.toLowerCase()!==wallet)throw Error('Connect your verified wallet to unlock this application.');
   const kp=await deriveEncKeypair(walletClient,wallet as `0x${string}`);
-  try{const envelope=JSON.parse(p.body),plaintext=decryptApplication(envelope,wallet as `0x${string}`,kp.secretKey);if(!plaintext)throw Error('This wallet is not an encryption recipient. The applicant can unlock and sync it from their own account.');const application=JSON.parse(plaintext),key=applicationContentKey(envelope,wallet as `0x${string}`,kp.secretKey);if(!active.current||generation.current!==run||currentWallet.current!==wallet)return;if(reviewer){cache.current[p.id]={application,key};setPreviews(v=>({...v,[p.id]:previewApplication(application)}));await onImport(p.id,key);delete cache.current[p.id];}else setUnlocked({wallet,uid:p.id,application,key});}finally{kp.secretKey.fill(0);}
+  try{const envelope=JSON.parse(p.body),plaintext=decryptApplication(envelope,wallet as `0x${string}`,kp.secretKey);if(!plaintext)throw Error('This wallet is not an encryption recipient. The applicant can unlock and sync it from their own account.');const application=JSON.parse(plaintext),key=applicationContentKey(envelope,wallet as `0x${string}`,kp.secretKey);if(!active.current||generation.current!==run||currentWallet.current!==wallet)return;if(reviewer){cache.current[p.id]={key};setPreviews(v=>({...v,[p.id]:previewApplication(application)}));await onImport(p.id,key);delete cache.current[p.id];}else setUnlocked({wallet,uid:p.id,application,key});}finally{kp.secretKey.fill(0);}
  }catch(e){if(active.current&&generation.current===run){setError((e as Error).message);setPreviews(v=>({...v,[p.id]:{...v[p.id],_error:(e as Error).message}}));}}finally{if(active.current)setBusy(false);}}
  async function unlockAll(){
   if(!walletClient||currentWallet.current!==wallet){setError('Connect your verified reviewer wallet.');return;}
   const run=++generation.current,isCurrent=()=>active.current&&generation.current===run&&currentWallet.current===wallet;
   setBusy(true);setError('');setUnlocked(null);setBatchNotice('Confirm one encryption signature in your wallet.');
   try {
-   const result=await unlockAndSaveApplications({posts:own,wallet:wallet as `0x${string}`,derive:()=>deriveEncKeypair(walletClient,wallet as `0x${string}`),save:async(uid,key)=>{await onImport(uid,key);delete cache.current[uid];},isCurrent,onUnlocked:(uid,application,key)=>{cache.current[uid]={application,key};setPreviews(v=>({...v,[uid]:previewApplication(application)}));},onFailure:(uid,message)=>setPreviews(v=>({...v,[uid]:{...v[uid],_error:message}})),progress:(done,total)=>setBatchNotice(`Saving applications: ${done} of ${total} checked…`)});
+   const result=await unlockAndSaveApplications({posts:own,wallet:wallet as `0x${string}`,derive:()=>deriveEncKeypair(walletClient,wallet as `0x${string}`),save:async(uid,key)=>{await onImport(uid,key);delete cache.current[uid];},isCurrent,onUnlocked:(uid,application,key)=>{cache.current[uid]={key};setPreviews(v=>({...v,[uid]:previewApplication(application)}));},onFailure:(uid,message)=>setPreviews(v=>({...v,[uid]:{...v[uid],_error:message}})),progress:(done,total)=>setBatchNotice(`Saving applications: ${done} of ${total} checked…`)});
    if(isCurrent())setBatchNotice(`${result.saved} saved. ${result.unavailable} unavailable to this wallet. ${result.failed} failed${result.failed?' — see the reason in each row. Unlocked details remain visible until you leave this page':''}.`);
   }catch(e){if(isCurrent()){setError((e as Error).message);setBatchNotice('');}}
   finally{if(active.current)setBusy(false);}
