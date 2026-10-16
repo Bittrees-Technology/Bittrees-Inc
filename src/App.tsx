@@ -1,6 +1,6 @@
 import PageMeta from "./components/PageMeta";
 import { BrowserRouter, Routes, Route, NavLink, Link } from "react-router";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import GovAccount from "./components/GovAccount";
 import { useState, useEffect } from "react";
 import { watchPushSession } from "./lib/pushRuntime";
 import { useAccount } from "wagmi";
@@ -94,7 +94,7 @@ function Header() {
         borderBottom: "1px solid var(--color-border)",
       }}
     >
-      <div
+      <div className="gov-header-inner"
         style={{
           maxWidth: "1140px",
           margin: "0 auto",
@@ -156,7 +156,7 @@ function Header() {
 
         {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginLeft: "auto" }}>
-          <ConnectButton chainStatus="icon" showBalance={false} accountStatus="avatar" />
+          <GovAccount />
           <button data-insights="toggle-navigation"
             className="nav-mobile-toggle"
             onClick={() => setMobileOpen((v) => !v)}
