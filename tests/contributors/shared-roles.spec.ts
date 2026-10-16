@@ -9,7 +9,7 @@ test('Gov Roles reflects shared changes and fails closed without legacy editors'
  await page.route('**/api/contributors',r=>r.fulfill({json:{session:null}}));
  await page.goto('/admin');await page.getByRole('button',{name:'Connect Wallet',exact:true}).click();await page.getByRole('button',{name:/^MetaMask(?:\s|$)/}).click();
  await page.getByRole('button',{name:'Roles',exact:true}).click();
- const panel=page.getByRole('region',{name:'Shared Gov roles'});
+ const panel=page.getByRole('region',{name:'Shared Gov roles'});await panel.getByText('Your effective Gov access',{exact:true}).click();
  await expect(panel.getByRole('cell',{name:'Partner',exact:true})).toBeVisible();
  await expect(panel.getByText('Junior Partner',{exact:true})).toHaveCount(0);
  await expect(panel.getByRole('link',{name:'Manage Gov roles'})).toHaveAttribute('href','https://roles.bittrees.org/role-management?project=gov&view=all');

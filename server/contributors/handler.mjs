@@ -1,3 +1,4 @@
+import {govRoleRoster} from '../gov-role-roster.mjs';
 import {readBaseApplication} from './base-application.mjs';
 import {createHash,createHmac,randomUUID} from 'node:crypto';
 import {chainContext,prepareConsent,acceptConsent,prepareExecution,reconcile,refreshCredential,expireBootstrap,verifyExpiredMemoConsent} from './chain.mjs';
@@ -29,6 +30,7 @@ export function createContributorHandler(project,{env=process.env,command=redisC
   if(body.action==='sign_out')return res.status(200).json(await auth.signOut(req,res));
   if(body.action==='wallet_challenge')return res.status(200).json(await auth.walletChallenge(req,session,body.address));
   if(body.action==='wallet_verify')return res.status(200).json(await auth.walletVerify(req,session,body.signature));
+  if(body.action==='gov_roles'&&project==='gov')return res.status(200).json(await govRoleRoster(session.wallet,{env}));
   const actor=await actorFor(session,project),store=contributorStore(command,codec,project),service=contributorService();
   if(body.action==='list'){
    const state=await store.read();
