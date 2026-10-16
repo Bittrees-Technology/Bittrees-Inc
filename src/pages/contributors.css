@@ -102,3 +102,8 @@ main:has(.cp-sheet){max-width:none!important;box-sizing:border-box}
  .cp-sheet tr>:nth-child(2){position:static}
  .cp-bulk-unlock{gap:.25rem}
 }
+
+.cp-sheet-memoranda table{min-width:1650px}
+.cp-sheet-memoranda thead th:nth-child(5){width:130px}
+.cp-sheet-memoranda thead th:nth-child(7){width:300px}
+.cp-sheet-memoranda thead th:nth-child(9){width:210px}
