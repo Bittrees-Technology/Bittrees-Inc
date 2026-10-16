@@ -1,3 +1,4 @@
+import Contributors from './Contributors';
 import {useAuthorityAccess} from '../lib/authorityAccess';
 import type { WalletClient } from "viem";
 import { usePush, usePushSessionKey } from "../lib/usePush";
@@ -5,16 +6,14 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { getAddress, parseUnits, isAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useQueryClient } from "@tanstack/react-query";
 import { fetchSpaceSettings, updateSpaceSettings } from "../lib/snapshot";
 import { useAdminAccess, type AdminLevel } from "../lib/adminAccess";
 import { BGOV_ROOMS, SAFE_ROOMS, ROOM_ADMINS, createGatedGroup, gateUrl, gateLabel, type PushRoom, type PushClient, type RoomGate, type RoomRule } from "../lib/push";
 import { useRoomRegistry, saveRoomChatId, saveCustomRoom, deleteCustomRoom, approveRoomProposal, rejectRoomProposal, type RoomProposal } from "../lib/rooms";
-import { assignRole, unassignRole, createRole, deleteRole, selectableRoles, useCommunity, moderateItem, publishEncKey, TIER_ROLES } from "../lib/community";
-import { useTopics, CONTRIB_COMMUNITY, EASSCAN_VIEW } from "../lib/forum";
-import { deriveEncKeypair, decryptApplication, pubKeyHex, type Application, type Envelope, type EncKeypair } from "../lib/appcrypto";
-import { CHAT_URL, ROUTES, shortAddress, relativeTime } from "../lib/links";
+import { assignRole, unassignRole, createRole, deleteRole, selectableRoles, useCommunity, moderateItem, TIER_ROLES } from "../lib/community";
+import { EASSCAN_VIEW } from "../lib/forum";
+import { CHAT_URL, ROUTES, shortAddress } from "../lib/links";
 import { useRoomGate, RoomGateBuilder } from "../components/RoomGateBuilder";
 import { AddressName } from "../components/AddressName";
 import { getEnsAddress } from "@wagmi/core";
@@ -28,7 +27,7 @@ function humanError(e: unknown): string {
 }
 
 export default function Admin() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const level = useAdminAccess(address);
 
   return (
@@ -39,25 +38,11 @@ export default function Admin() {
         <h1 className="text-display">Admin console</h1>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9rem", color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: "0.5rem" }}>
           Space settings, community rooms, and contributor applications — all signed by your wallet.
-          For the space's admins only.
+          Each area checks your current permissions.
         </p>
       </header>
 
-      <Link to="/admin/contributors">Open contributor administration — applications, memoranda and contributions</Link>
-      {!isConnected ? (
-        <div className="card" style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-          <p style={{ ...dim, margin: 0 }}>Connect a wallet.</p>
-          <ConnectButton chainStatus="none" showBalance={false} />
-        </div>
-      ) : level === "none" ? (
-        <div className="card">
-          <p style={{ ...dim, margin: 0 }}>
-            This page is for admins. The connected wallet isn't a space admin and has no admin role.
-          </p>
-        </div>
-      ) : (
-        <AdminConsole address={address!} level={level} />
-      )}
+      <AdminConsole address={address!} level={level} />
     </div>
   );
 }
@@ -76,8 +61,9 @@ function AdminConsole({ address, level }: { address: `0x${string}`; level: Admin
   const pushSessionKey = usePushSessionKey();
   const shared=useAuthorityAccess(address);
   // Moderators see only the Moderation tab; full admins see everything.
-  const tabs = level === "moderation" ? ADMIN_TABS.filter((t) => t.key === "moderation") : ADMIN_TABS;
-  const [tab, setTab] = useState<AdminTabKey>(tabs[0].key);
+  const tabs = level === "none" ? ADMIN_TABS.filter(t=>t.key==="applications") : level === "moderation" ? ADMIN_TABS.filter(t=>t.key==="moderation"||t.key==="applications") : ADMIN_TABS;
+  const [selectedTab, setTab] = useState<AdminTabKey>("applications");
+  const tab=tabs.some(t=>t.key===selectedTab)?selectedTab:tabs[0].key;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
       <div style={{ display: "flex", gap: "0.15rem", borderBottom: "1px solid var(--color-border)", flexWrap: "wrap" }}>
@@ -89,7 +75,7 @@ function AdminConsole({ address, level }: { address: `0x${string}`; level: Admin
       {tab === "rooms" && <CommunityRoomsAdmin key={pushSessionKey} address={address} />}
       {tab === "roles" && (shared.data?.configured ? <section className="card"><h2>Shared roles</h2><p>Partner roles, BGOV eligibility and project staff assignments are managed in Roles.</p><a href="https://roles.bittrees.org/role-management?project=gov">Manage roles</a></section> : <RolesAdmin address={address} />)}
       {tab === "moderation" && <ModerationQueue address={address} />}
-      {tab === "applications" && <ContributorApplications />}
+      {tab === "applications" && <Contributors embedded />}
     </div>
   );
 }
@@ -763,103 +749,6 @@ function ModerationQueue({ address }: { address: `0x${string}` }) {
             );
           })}
           {error && <p role="alert" style={{ ...dim, color: "var(--color-ink)" }}>{error}</p>}
-        </div>
-      )}
-    </section>
-  );
-}
-
-/* ── Contributor applications (on-chain, EAS on Base) ─────────────────────── */
-function ContributorApplications() {
-  const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
-  const { data: posts, isLoading, isError } = useTopics(CONTRIB_COMMUNITY);
-  const [kp, setKp] = useState<EncKeypair | null>(null);
-  const [status, setStatus] = useState<"idle" | "enabling">("idle");
-  const [error, setError] = useState<string>();
-
-  async function enable() {
-    if (!walletClient || !address) return;
-    setStatus("enabling");
-    setError(undefined);
-    try {
-      const keypair = await deriveEncKeypair(walletClient, address);
-      await publishEncKey({ walletClient, account: address, pubkey: pubKeyHex(keypair.publicKey) });
-      setKp(keypair);
-    } catch (e) {
-      setError(humanError(e));
-    } finally {
-      setStatus("idle");
-    }
-  }
-
-  const decoded = (posts ?? []).map((p) => {
-    let app: Application | null = null;
-    if (kp && address) {
-      try {
-        const json = decryptApplication(JSON.parse(p.body) as Envelope, address, kp.secretKey);
-        app = json ? (JSON.parse(json) as Application) : null;
-      } catch { app = null; }
-    }
-    return { id: p.id, time: p.time, attester: p.attester, app };
-  });
-
-  return (
-    <section style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div>
-        <p className="text-label">Contributor applications</p>
-        <p style={{ ...dim, margin: "0.25rem 0 0", lineHeight: 1.55 }}>
-          Applications from <Link to={ROUTES.contribute} style={{ color: "var(--color-primary-hover)" }}>Become a contributor</Link>{" "}
-          are <strong>on-chain (Base) but encrypted</strong>. Enable decryption to derive your key (and
-          publish it so new applicants encrypt to you), then read the ones you're a recipient of —
-          requires the <code style={mono}>Operations</code> role.
-        </p>
-      </div>
-      <div>
-        <button className="btn-primary" onClick={enable} disabled={status === "enabling"} style={{ opacity: status === "enabling" ? 0.6 : 1 }}>
-          {status === "enabling" ? "Confirm in wallet…" : kp ? "Re-publish decryption key" : "Enable decryption"}
-        </button>
-        {error && <span role="alert" style={{ ...dim, color: "var(--color-ink)", marginLeft: "0.85rem" }}>{error}</span>}
-      </div>
-
-      {isLoading ? (
-        <p style={dim}>Loading applications…</p>
-      ) : isError ? (
-        <p style={dim}>Couldn't reach the on-chain indexer right now.</p>
-      ) : decoded.length === 0 ? (
-        <div className="card"><p style={{ ...dim, margin: 0 }}>No applications yet.</p></div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-          {decoded.map((d) => (
-            <div key={d.id} className="card" style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>
-                <p style={{ fontFamily: "var(--font-serif)", fontSize: "0.95rem", fontWeight: 700, color: "var(--color-ink)", margin: 0 }}>
-                  {d.app ? `${d.app.name || "Applicant"}${d.app.expertise?.length ? ` · ${d.app.expertise.join(", ")}` : ""}` : "🔒 Encrypted"}
-                </p>
-                <span style={{ ...dim, fontSize: "0.72rem" }}>{relativeTime(d.time)}</span>
-              </div>
-              {d.app ? (
-                <>
-                  <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.82rem", color: "var(--color-ink-muted)", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>{d.app.specialty}</p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.85rem", fontFamily: "var(--font-sans)", fontSize: "0.72rem", color: "var(--color-ink-dim)" }}>
-                    {d.app.region?.length ? <span>Region: {d.app.region.join(", ")}</span> : null}
-                    {d.app.languages?.length ? <span>Languages: {d.app.languages.join(", ")}</span> : null}
-                    {d.app.email ? <span>Email: {d.app.email}</span> : null}
-                    {d.app.twitter ? <span>X: {d.app.twitter}</span> : null}
-                    {d.app.telegram ? <span>TG: {d.app.telegram}</span> : null}
-                    {d.app.heardFrom ? <span>Heard via: {d.app.heardFrom}</span> : null}
-                    {d.app.referrer ? <span>Referred by: {d.app.referrer}</span> : null}
-                    {d.app.wallet ? <span style={{ fontFamily: "var(--font-mono)" }}>BTREE: {shortAddress(d.app.wallet)}</span> : null}
-                  </div>
-                </>
-              ) : (
-                <p style={{ ...dim, margin: 0 }}>{kp ? "You're not a recipient (submitted before you enabled decryption)." : "Enable decryption to read this."}</p>
-              )}
-              <a href={`${EASSCAN_VIEW}${d.id}`} target="_blank" rel="noreferrer" style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem", color: "var(--color-ink-dim)", textDecoration: "none" }}>
-                {shortAddress(d.attester)} · on-chain ↗
-              </a>
-            </div>
-          ))}
         </div>
       )}
     </section>
