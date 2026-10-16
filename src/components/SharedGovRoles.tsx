@@ -1,3 +1,4 @@
+import GovRoleRoster from './GovRoleRoster';
 import {useAuthorityAccess} from '../lib/authorityAccess';
 
 const accessLabels: Record<string,string> = {
@@ -17,12 +18,14 @@ export default function SharedGovRoles({address}:{address?:string}) {
   const highest=tiers.find(t=>current?.roles?.some(r=>r.label===t));
   const roles=[...new Set((current?.roles||[]).map(r=>r.label))].filter(label=>!tiers.includes(label)||label===highest);
   return <section aria-label="Shared Gov roles" style={{display:'grid',gap:'1rem',fontFamily:'var(--font-sans)'}}>
-    <header><h2 className="text-display">Roles</h2><p>Current access comes from Roles. Manage Gov assignments and partner decisions there.</p></header>
+    <header><h2 className="text-display">Roles</h2><p>Gov’s role catalog and assignments are synchronized from Roles. Manage changes and approvals there.</p></header>
     <nav aria-label="Roles site" style={{display:'flex',gap:'1rem',flexWrap:'wrap'}}>
       <a href="https://roles.bittrees.org/role-management?project=gov&view=all">Manage Gov roles</a>
       <a href="https://roles.bittrees.org/partnership">Partner decisions</a>
       <a href="https://roles.bittrees.org/profile">My role profile</a>
     </nav>
+    <GovRoleRoster address={address} />
+    <details><summary>Your effective Gov access</summary>
     {!address ? <p>Connect your wallet at the top right to see your Gov access.</p> : <>
       <div style={{display:'flex',gap:'1rem',alignItems:'center',flexWrap:'wrap'}}>
         <h3 style={{margin:0}}>Your Gov access</h3>
@@ -43,5 +46,6 @@ export default function SharedGovRoles({address}:{address?:string}) {
           <p style={{margin:0,color:'var(--color-ink-muted)',fontSize:'0.8125rem'}}>Checked {new Date(access.dataUpdatedAt).toLocaleTimeString()}. Refreshes automatically and when you return to Gov. Effective roles include inherited access; appointments and approval history are shown in Roles.</p>
         </>}
     </>}
+    </details>
   </section>;
 }
