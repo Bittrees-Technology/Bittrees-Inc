@@ -113,7 +113,7 @@ export default function Contribute() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", maxWidth: "680px", margin: "0 auto", width: "100%" }}>
       <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
-        <p><Link to="/contributors/apply">Apply with email in the new contributor portal</Link></p>
+        <p><Link to="/contributors/apply">Continue an existing application or apply with email</Link></p>
         <p className="text-label">Bittrees, Inc.</p>
         <h1 className="text-display">Become a contributor</h1>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: "0.5rem" }}>
@@ -132,6 +132,7 @@ export default function Contribute() {
           <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.85rem", color: "var(--color-ink-muted)", margin: 0 }}>
             Encrypted and recorded on-chain. Only you and the Bittrees reviewers can decrypt it.
           </p>
+          <Link to="/admin/contributors">Continue to application review and memorandum</Link>
           {txHash && (
             <a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--color-ink-muted)", textDecoration: "none" }}>
               View on BaseScan ↗
