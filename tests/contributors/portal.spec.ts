@@ -79,3 +79,17 @@ test('application sheet loads older encrypted applications beyond the first inde
  await page.route('**/graphql',r=>{const body=r.request().postDataJSON();if(!body.query.includes('query Topics('))return r.fulfill({json:{data:{attestations:[]}}});const skip=body.variables.skip||0;seen.push(skip);const count=skip===0?100:1;return r.fulfill({json:{data:{attestations:Array.from({length:count},(_,i)=>({id:'0x'+(skip+i+1).toString(16).padStart(64,'0'),attester:wallet,refUID:'0x'+'0'.repeat(64),schemaId:body.variables.schemaId,expirationTime:0,revocationTime:0,time:1700000000-i,decodedDataJson:JSON.stringify([{name:'community',value:{value:body.variables.community}},{name:'body',value:{value:'{}'}}])}))}}});});
  await page.route('**/api/contributors',r=>r.fulfill({json:r.request().method()==='GET'?{session:{wallet,csrf:'test'}}:{applications:[],persona:{id:'partner',canReview:true,canDecide:true}}}));await page.goto('/admin/contributors');await expect(page.getByRole('region',{name:'Application list',exact:true}).locator('tbody tr')).toHaveCount(101);expect(seen).toContain(100);await expect(page.getByRole('button',{name:'Unlock application',exact:true})).toHaveCount(101);
 });
+
+for(const canReview of [true,false])test(`monthly contributions requires approval and issued NFT (reviewer: ${canReview})`,async({page})=>{
+ const wallet='0x'+'1'.repeat(40);
+ const make=(id:string,state:string,issued:boolean)=>({id,name:id,identity:'owner',state,project:'Bittrees Governance',version:1,wallet,specialty:'Documentation',reviews:[],proposals:[],validations:[],memos:issued?[{version:1,status:'issued'}]:[],credential:issued?{tokenId:'1',contract:'0x'+'2'.repeat(40),memoVersion:1,standing:'active'}:null});
+ let applications=[make('New applicant','submitted',false),make('Accepted awaiting issuance','approved',false),make('Issued contributor','approved',true),make('Rejected credential record','rejected',true)];
+ const pending=make('Signed but not issued','approved',true);pending.memos[0].status='acknowledged';applications.push(pending);
+ await page.route('**/graphql',r=>r.fulfill({json:{data:{attestations:[]}}}));
+ await page.route('**/api/contributors',r=>r.fulfill({json:r.request().method()==='GET'?{session:{wallet,csrf:'test'}}:{today:'2026-10-16',applications,persona:{id:'partner',canReview,canValidate:true}}}));
+ await page.goto('/admin/contributors');await page.getByRole('button',{name:'Monthly contributions',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Issued contributor',exact:true})).toBeVisible();
+ for(const name of ['New applicant','Accepted awaiting issuance','Rejected credential record','Signed but not issued'])await expect(page.getByText(name,{exact:true})).toHaveCount(0);
+ applications=applications.filter(a=>a.id!=='Issued contributor');await page.reload();await page.getByRole('button',{name:'Monthly contributions',exact:true}).click();
+ await expect(page.getByText('No approved contributors with an issued memorandum NFT yet.',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Confirm contribution period'})).toHaveCount(0);
+});
