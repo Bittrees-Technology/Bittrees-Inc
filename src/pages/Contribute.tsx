@@ -1,3 +1,4 @@
+import './contributor-application.css';
 import { Link } from "react-router";
 import { useState } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
@@ -7,7 +8,6 @@ import { getWalletClient } from "@wagmi/core";
 import { publishPost, CONTRIB_COMMUNITY, useSchemaRegistered } from "../lib/forum";
 import { fetchCommunity, currentReviewers } from "../lib/community";
 import { deriveEncKeypair, encryptApplication, pubKeyFromHex, type Application } from "../lib/appcrypto";
-import { shortAddress } from "../lib/links";
 import { ChipMultiSelect, SearchMultiSelect } from "../components/multiselect";
 import type { Hash } from "viem";
 
@@ -45,10 +45,8 @@ export default function Contribute() {
   const [region, setRegion] = useState<string[]>([]); // required ≥1
   const [languages, setLanguages] = useState<string[]>([]);
   const [heardFrom, setHeardFrom] = useState(""); // required
-  const [email, setEmail] = useState("");
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
-  const [wallet, setWallet] = useState("");
   const [referrer, setReferrer] = useState("");
 
   const [status, setStatus] = useState<"idle" | "posting" | "done" | "error">("idle");
@@ -80,14 +78,14 @@ export default function Contribute() {
         languages,
         specialty: specialty.trim(),
         heardFrom: heardFrom.trim(),
-        email: email.trim(),
+        email: "",
         twitter: twitter.trim(),
         telegram: telegram.trim(),
-        wallet: wallet.trim() || address,
+        wallet: address,
         referrer: referrer.trim(),
       };
       // Derive my key (also a recipient) and gather the reviewers' published keys.
-      const { publicKey } = await deriveEncKeypair(wc, address);
+      const keypair = await deriveEncKeypair(wc, address);const publicKey=keypair.publicKey;keypair.secretKey.fill(0);
       const community = await fetchCommunity();
       const reviewers = currentReviewers(community)
         .map((a) => ({ addr: a, hex: community.enckeys[a] }))
@@ -111,16 +109,13 @@ export default function Contribute() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", maxWidth: "680px", margin: "0 auto", width: "100%" }}>
+    <div className="contributor-application" style={{display:"flex",flexDirection:"column",gap:"1.5rem"}}>
       <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
-        <p><Link to="/contributors/apply">Continue an existing application or apply with email</Link></p>
+        <p><Link to="/admin/contributors">View my application and memorandum</Link></p>
         <p className="text-label">Bittrees, Inc.</p>
         <h1 className="text-display">Become a contributor</h1>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: "0.5rem" }}>
-          Our selected Bittrees Contributors are at the heart of our ever-changing world. We welcome
-          applicants from a wide variety of professional specialties and backgrounds. Your application
-          is recorded <strong>on-chain (Base) but encrypted</strong> — only you and the Bittrees
-          reviewers can read it.
+          Tell us what you would like to contribute. Submit with your wallet on Base; your answers are encrypted for you and the designated reviewers.
         </p>
       </header>
 
@@ -145,20 +140,20 @@ export default function Contribute() {
           <ConnectButton chainStatus="none" showBalance={false} />
         </div>
       ) : (
-        <div className="card" style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
-          <Field label="Your name (what should we call you)" required>
+        <div className="application-form"><p className="application-wallet">Applying with {address?.slice(0,6)}…{address?.slice(-4)}. This wallet will own your application.</p><h3>Your contribution</h3>
+          <Field label="Name or handle" required>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name or handle" maxLength={120} style={inputStyle} />
           </Field>
 
-          <Field label="Area(s) of expertise — select all that apply" required>
+          <Field label="Areas of expertise" required>
             <ChipMultiSelect options={EXPERTISE} value={expertise} onChange={setExpertise} />
           </Field>
 
-          <Field label="Briefly describe your specialty and/or topic(s) you're interested in contributing to Bittrees" required>
+          <Field label="What would you like to contribute?" required>
             <textarea value={specialty} onChange={(e) => setSpecialty(e.target.value)} rows={5} placeholder="A few sentences on your specialty and what you'd contribute." style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
           </Field>
 
-          <Field label="Region(s) — select all that apply" required>
+          <h3>Your background</h3><Field label="Regions" required>
             <ChipMultiSelect options={REGIONS} value={region} onChange={setRegion} />
           </Field>
 
@@ -170,10 +165,7 @@ export default function Contribute() {
             <input value={heardFrom} onChange={(e) => setHeardFrom(e.target.value)} placeholder="X, a friend, an event, search…" maxLength={160} style={inputStyle} />
           </Field>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.1rem" }}>
-            <Field label="Email">
-              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" maxLength={160} style={inputStyle} />
-            </Field>
+          <details><summary>Optional contact and referral details</summary><div className="application-contact">
             <Field label="Twitter / X">
               <input value={twitter} onChange={(e) => setTwitter(e.target.value)} placeholder="@handle" maxLength={80} style={inputStyle} />
             </Field>
@@ -183,11 +175,9 @@ export default function Contribute() {
             <Field label="If someone referred you, their name">
               <input value={referrer} onChange={(e) => setReferrer(e.target.value)} placeholder="Referrer (optional)" maxLength={120} style={inputStyle} />
             </Field>
-          </div>
+          </div></details>
 
-          <Field label="Preferred ETH wallet to receive BTREE">
-            <input value={wallet} onChange={(e) => setWallet(e.target.value)} placeholder={address ? `Defaults to ${shortAddress(address)}` : "0x…"} maxLength={64} style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: "0.82rem" }} />
-          </Field>
+
 
           <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.72rem", color: "var(--color-ink-dim)", lineHeight: 1.55, margin: 0 }}>
             Submitting signs once to derive your encryption key (no gas), then records the encrypted
