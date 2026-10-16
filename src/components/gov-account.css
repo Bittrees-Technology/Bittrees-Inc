@@ -1,0 +1,14 @@
+.gov-account{display:flex;gap:.5rem;align-items:center;font-family:var(--font-sans);font-size:.8125rem}
+.gov-account-menu{position:relative}
+.gov-account-menu summary,.gov-chain{display:flex;align-items:center;gap:.5rem;cursor:pointer;border:1px solid var(--color-border-light);border-radius:4px;padding:.55rem .65rem;background:var(--color-bg-card);color:var(--color-ink);font-weight:600;list-style:none;white-space:nowrap}
+.gov-account-menu summary::-webkit-details-marker{display:none}
+.gov-account img{width:22px;height:22px;border-radius:50%}
+.gov-account-panel{position:absolute;right:0;top:calc(100% + .5rem);z-index:100;width:280px;max-width:calc(100vw - 3rem);padding:1rem;background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:2px;box-shadow:0 6px 20px #00000014;display:flex;flex-direction:column;gap:.75rem}
+.gov-account-panel p{margin:0;color:var(--color-ink-muted);line-height:1.5}
+.gov-account-panel button:not(.btn-primary),.gov-account-panel a{background:none;border:0;padding:0;text-align:left;font:inherit;color:var(--color-ink);cursor:pointer;text-decoration:none}
+.gov-account-panel button:disabled{opacity:.5;cursor:default}
+.gov-account-panel a:hover,.gov-account-panel button:not(.btn-primary):hover{text-decoration:underline}
+.gov-account-panel p[role=alert]{color:#9b3025;overflow-wrap:anywhere}
+.gov-account-menu summary:focus-visible,.gov-chain:focus-visible{outline:2px solid var(--color-ink);outline-offset:3px}
+
+@media(max-width:650px){.gov-header-inner{gap:.75rem!important;padding:0 1rem!important}.gov-account-label{max-width:60px;overflow:hidden;text-overflow:ellipsis}.gov-account-menu summary,.gov-chain{padding:.5rem}.gov-account-panel{max-width:calc(100vw - 2rem)}}
