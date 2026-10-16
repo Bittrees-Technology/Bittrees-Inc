@@ -1,3 +1,4 @@
+import ReviewerAccessSettings, {useReviewerSetupAccess} from '../components/ReviewerAccessSettings';
 import Contributors from './Contributors';
 import {useAuthorityAccess} from '../lib/authorityAccess';
 import type { WalletClient } from "viem";
@@ -49,6 +50,7 @@ export default function Admin() {
 
 /* ── Tabbed admin console — each area managed on its own tab ──────────────── */
 const ADMIN_TABS = [
+  { key: "reviewer-settings", label: "Admin settings" },
   { key: "settings", label: "Space settings" },
   { key: "rooms", label: "Community rooms" },
   { key: "roles", label: "Roles & tags" },
@@ -60,8 +62,9 @@ type AdminTabKey = (typeof ADMIN_TABS)[number]["key"];
 function AdminConsole({ address, level }: { address: `0x${string}`; level: AdminLevel }) {
   const pushSessionKey = usePushSessionKey();
   const shared=useAuthorityAccess(address);
+  const reviewerSetup=useReviewerSetupAccess(address);
   // Moderators see only the Moderation tab; full admins see everything.
-  const tabs = level === "none" ? ADMIN_TABS.filter(t=>t.key==="applications") : level === "moderation" ? ADMIN_TABS.filter(t=>t.key==="moderation"||t.key==="applications") : ADMIN_TABS;
+  const tabs = level === "none" ? ADMIN_TABS.filter(t=>(t.key==="applications"||(t.key==="reviewer-settings"&&reviewerSetup))) : level === "moderation" ? ADMIN_TABS.filter(t=>t.key==="moderation"||t.key==="applications"||(t.key==="reviewer-settings"&&reviewerSetup)) : ADMIN_TABS.filter(t=>t.key!=="reviewer-settings"||reviewerSetup);
   const [selectedTab, setTab] = useState<AdminTabKey>("applications");
   const tab=tabs.some(t=>t.key===selectedTab)?selectedTab:tabs[0].key;
   return (
@@ -71,6 +74,7 @@ function AdminConsole({ address, level }: { address: `0x${string}`; level: Admin
           <AdminTabBtn key={t.key} active={tab === t.key} onClick={() => setTab(t.key)}>{t.label}</AdminTabBtn>
         ))}
       </div>
+      {tab === "reviewer-settings" && <ReviewerAccessSettings address={address} />}
       {tab === "settings" && <SpaceSettings address={address} />}
       {tab === "rooms" && <CommunityRoomsAdmin key={pushSessionKey} address={address} />}
       {tab === "roles" && (shared.data?.configured ? <section className="card"><h2>Shared roles</h2><p>Partner roles, BGOV eligibility and project staff assignments are managed in Roles.</p><a href="https://roles.bittrees.org/role-management?project=gov">Manage roles</a></section> : <RolesAdmin address={address} />)}
