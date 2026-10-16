@@ -137,6 +137,7 @@ function transition(original,actor,id,input,{expiredConsentVerified=false}={}){
   const reason=text(input.reason,'Status reason');c.standing=input.standing;c.revision=(c.revision||1)+1;c.history.push({action:'standing',standing:c.standing,reason,at:TODAY});log(state,actor,app,action,{standing:c.standing,reason,privateNote:privateNote(input.privateNote)});
  }else if(action==='validate_month'){
   fields(input,['action','expectedVersion','month','from','through','evidence']);
+  if(app.state!=='approved'||!app.credential?.tokenId||!app.credential?.contract||!app.memos.some(m=>m.version===app.credential.memoVersion&&m.status==='issued'))fail('An approved application and issued memorandum NFT are required.',409);
   if(!actor.validate||!actor.review.includes(app.lane))fail('Monthly validation authority is required.',403);
   const c=app.credential;if(!c||c.standing!=='active'||c.monthlyBtreeBeneficiary!==true||!Number.isFinite(Date.parse(c.chainCheckedAt))||Date.now()-Date.parse(c.chainCheckedAt)>90000)fail('A current, Active, in-term credential verified on-chain is required for monthly BTREE beneficiary eligibility.',409);
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(input.month||''))fail('Select a valid month.');
