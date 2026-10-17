@@ -23,7 +23,19 @@ export default function Contributors({apply=false,embedded=false}:{apply?:boolea
  const hadWallet=useRef(false);if(address)hadWallet.current=true;
  async function call(body:any,csrf=session?.csrf){const r=await fetch('/api/contributors',{method:'POST',headers:{'content-type':'application/json',...(csrf?{'x-contributor-csrf':csrf}:{})},body:JSON.stringify(body)});const result=await r.json();if(!r.ok)throw Error(result.error||'Request failed.');return result;}
  async function refresh(){const result=await auth.refetch();if(result.error)throw result.error;const s=result.data;return s;}
- useEffect(()=>{if(apply)return;let current=true;setData(null);if(auth.error)setError(auth.error.message);else if(session&&(!address?!hadWallet.current:!session.wallet||address.toLowerCase()===session.wallet.toLowerCase())){setError('');call({action:'list'},session.csrf).then(result=>{if(current)setData(result);}).catch(e=>{if(current)setError(e.message);});}return()=>{current=false;};},[apply,address,session?.csrf,auth.error,auth.dataUpdatedAt]);
+ const loadedAccount=useRef<string|null>(null),loadGeneration=useRef(0);
+ useEffect(()=>{
+  if(apply)return;
+  let current=true;const generation=++loadGeneration.current;
+  const valid=session&&(!address?!hadWallet.current:!session.wallet||address.toLowerCase()===session.wallet.toLowerCase());
+  const account=valid?`${session.identity||''}:${session.wallet||''}:${session.email||''}`:null;
+  if(auth.error||!valid){loadedAccount.current=null;setData(null);if(auth.error)setError(auth.error.message);return;}
+  if(loadedAccount.current!==account){setData(null);loadedAccount.current=account;}
+  setError('');
+  call({action:'list'},session.csrf).then(result=>{if(current&&generation===loadGeneration.current)setData(result);}).catch(e=>{if(current&&generation===loadGeneration.current){setData(null);setError(e.message);}});
+  return()=>{current=false;};
+ },[apply,address,session?.csrf,session?.wallet,session?.identity,auth.error,auth.dataUpdatedAt]);
+
  async function run(fn:()=>Promise<void>){setBusy(true);setError('');setNotice('');try{await fn();}catch(e){setError((e as Error).message);}finally{setBusy(false);}}
  const walletMismatch=!!(session?.wallet&&((address&&address.toLowerCase()!==session.wallet.toLowerCase())||(!address&&hadWallet.current)));
  const queue=(data?.applications||[]).filter((a:any)=>(tab==='My application'?a.identity===data?.persona?.id:tab==='Monthly contributions'?a.state==='approved'&&a.credential?.tokenId&&a.credential?.contract&&a.memos?.some((m:any)=>m.version===a.credential.memoVersion&&m.status==='issued'):tab==='Directory'||tab===memorandumTab?a.state==='approved':!data?.persona?.canReview||tab!=='Applications'||a.state!=='approved')&&[a.name,a.wallet,a.specialty,a.state,...(a.requestedRoles||[])].join(' ').toLowerCase().includes(search.toLowerCase())).sort((a:any,b:any)=>Number(a.state==='rejected')-Number(b.state==='rejected'));const app=queue.find((a:any)=>a.id===selected)||queue[0],actor=data?.persona,own=app?.identity===actor?.id,memo=app?.memos?.at(-1),pendingMemoEdit=app?.memoEdits?.some((e:any)=>e.state==='pending');

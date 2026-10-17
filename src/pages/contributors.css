@@ -119,3 +119,15 @@ main:has(.cp-sheet){max-width:none!important;box-sizing:border-box}
 .cp-memo-manage{margin-top:1.5rem;border-top:1px solid var(--color-border);padding-top:1rem}
 .cp-memo-manage>summary{color:var(--color-ink-muted)}
 .cp-memo-summary .cp-responsibilities{max-width:74ch}
+
+/* Stable column sizing, including long names and wallet addresses. */
+.cp dl>div,.cp-grid>*{min-width:0}
+.cp-memo-summary{max-width:850px;box-sizing:border-box}
+.cp-memo-summary dl{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.cp-sheet-memoranda table{table-layout:fixed;min-width:640px}
+.cp-sheet-memoranda thead th:nth-child(1){width:42px}
+.cp-sheet-memoranda thead th:nth-child(2){width:28%}
+.cp-sheet-memoranda thead th:nth-child(3){width:30%}
+.cp-sheet-memoranda thead th:nth-child(4){width:150px}
+.cp-sheet-memoranda thead th:nth-child(5){width:75px}
+@media(max-width:650px){.cp-memo-summary dl{grid-template-columns:minmax(0,1fr)}.cp-memo-progress{gap:1rem}.cp-memo-summary{padding:1rem}}
