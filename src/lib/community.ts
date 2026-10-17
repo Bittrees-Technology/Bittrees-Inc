@@ -26,7 +26,7 @@ export async function fetchCommunity(): Promise<CommunityData> {
     const r = await fetch(URL,{cache:"no-store"});
     if (!r.ok) return { roles: {}, flags: {}, enckeys: {}, roledefs: [], threshold: FLAG_HIDE_THRESHOLD };
     const j = await r.json();
-    return { reviewerAuthority:j?.reviewerAuthority,roles: j?.roles ?? {}, flags: j?.flags ?? {}, enckeys: j?.enckeys ?? {}, roledefs: j?.roledefs ?? [], threshold: j?.threshold ?? FLAG_HIDE_THRESHOLD };
+    return { authorizationMode:j?.authorizationMode,reviewerAuthority:j?.reviewerAuthority,roles: j?.roles ?? {}, flags: j?.flags ?? {}, enckeys: j?.enckeys ?? {}, roledefs: j?.roledefs ?? [], threshold: j?.threshold ?? FLAG_HIDE_THRESHOLD };
   } catch {
     return { roles: {}, flags: {}, enckeys: {}, roledefs: [], threshold: FLAG_HIDE_THRESHOLD };
   }
@@ -52,8 +52,8 @@ export function useRoles(): { data: RolesMap | undefined } {
 export function useUserRoles(address?: string): Role[] {
   const { data } = useRoles();
   const shared=useAuthorityAccess(address);
-  if (!address || shared.isError) return [];
-  if(shared.data?.configured)return shared.data.roles||[];
+  if (!address || shared.isError || !shared.data) return [];
+  if(shared.data.configured)return Number.isFinite(shared.data.expiresAt) && shared.data.expiresAt! > Date.now() ? shared.data.roles||[] : [];
   return data?.[address.toLowerCase()] ?? [];
 }
 

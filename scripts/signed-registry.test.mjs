@@ -40,3 +40,11 @@ test('automatic enrollment preserves legacy only before first policy and never f
 });
 
 test('enrolled shared role writes redirect to Roles even for an administrator',async()=>{const f=fixture(),body=await envelope('/api/community',{assignRole:{target,label:'Partner'}},0);const r=await call(community,f,body,'POST',async()=>({configured:true,centralized:true,allowed:true,expiresAt:new Date(Date.now()+5000).toISOString()}));assert.equal(r.code,409);assert.equal(f.revision,0);assert.match(r.body.error,/roles.bittrees.org/);});
+
+test('fresh Gov roster denies legacy members moderation and room writes without changing storage',async()=>{
+ for(const [handler,endpoint,payload] of [[community,'/api/community',{moderate:{id:'post',decision:'approved'}}],[rooms,'/api/rooms',{custom:{key:'committee',name:'Committee',chatId:'original',gate:{kind:'role',role:'Partner'}}}]]){
+ const f=fixture(),before=JSON.stringify([...f.db]);
+ const r=await call(handler,f,await envelope(endpoint,payload,0),'POST',async()=>({configured:true,centralized:true,allowed:false,reason:'No current shared role'}));
+ assert.equal(r.code,403,JSON.stringify(r.body));assert.equal(f.revision,0);assert.equal(JSON.stringify([...f.db]),before);
+ }
+});
