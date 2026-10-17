@@ -1,7 +1,8 @@
 import {useQuery} from '@tanstack/react-query';
 import {useContributorSession,contributorRequest} from '../lib/contributorSession';
 import {useCommunity} from '../lib/community';
-import {useState} from 'react';
+import {useState,useEffect} from 'react';
+import {currentRegistryRoles} from '../../shared/gov-registry-display.mjs';
 const names:Record<string,string>={'bittrees.partner':'Partner','bittrees.junior-partner':'Junior Partner','bittrees.associate':'Associate','project.admin':'Project administrator'};
 const cell={padding:'0.65rem',borderBottom:'1px solid var(--color-border)',verticalAlign:'top'};
 function Sheet({head,rows}:{head:string[];rows:any[][]}){return <div style={{overflowX:'auto',border:'1px solid var(--color-border)'}}><table style={{width:'100%',borderCollapse:'collapse',textAlign:'left',fontSize:'0.85rem'}}><thead><tr>{head.map(h=><th key={h} style={cell}>{h}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i}>{r.map((v,j)=><td key={j} style={{...cell,overflowWrap:'anywhere'}}>{v||'—'}</td>)}</tr>)}</tbody></table></div>;}
@@ -11,6 +12,10 @@ export default function GovRoleRoster({address}:{address?:string}){
  const query=useQuery({queryKey:['gov-role-roster',address?.toLowerCase(),auth.session?.csrf],enabled:verified,retry:false,staleTime:0,refetchInterval:30000,refetchOnWindowFocus:true,queryFn:()=>contributorRequest({action:'gov_roles'},auth.session.csrf)});
  if(!verified)return <p>Use the top-right account menu to verify your wallet and view the Gov role catalog and assignments.</p>;
  const data=query.isError?null:query.data;
+ const [now,setNow]=useState(Date.now());
+ useEffect(()=>{setNow(Date.now());const expiry=data?.registry?.validUntil;if(!Number.isFinite(expiry))return;const timer=setTimeout(()=>setNow(Date.now()),Math.max(0,expiry-Date.now()+1));return()=>clearTimeout(timer);},[data]);
+ const registryCurrent=currentRegistryRoles(data?.registry,address,now);
+ const registryRoles=data?.registry?.checkedAt<=now?currentRegistryRoles(data.registry,address,data.registry.checkedAt):[];
  const match=(...values:any[])=>values.join(' ').toLowerCase().includes(search.toLowerCase());
  const roleNames=new Map<string,string>((data?.roles||[]).map((r:any)=>[r.id,r.name]));for(const d of data?.definitions||[])roleNames.set(d.id,d.name);
  const roles=(data?.roles||[]).filter((r:any)=>match(r.name,r.description,r.scope));
@@ -25,8 +30,10 @@ export default function GovRoleRoster({address}:{address?:string}){
    <h4 style={{margin:0}}>Gov roles</h4>
    <Sheet head={['Role','Purpose','Scope']} rows={roles.map((r:any)=>[r.name,r.description,r.scope])}/>
    {!!data.definitions?.length&&<><h4 style={{margin:0}}>Custom roles</h4><Sheet head={['Role','Purpose','Status']} rows={data.definitions.filter((d:any)=>match(d.name,d.description)).map((d:any)=>[d.name,d.description,d.archivedAt?'Archived':'Available'])}/></>}
-   <h4 style={{margin:0}}>Role assignments</h4>
-   {assignments.length?<Sheet head={['Role','Wallet / identity','Status','Expires']} rows={assignments.map((a:any)=>[roleNames.get(a.definitionId)||roleNames.get(a.roleId)||a.roleId,a.principal,a.current?'Current':a.status||'Not currently effective',a.expiresAt?new Date(a.expiresAt).toLocaleDateString():'Ongoing'])}/>:<p>No matching Gov assignments are visible to this wallet.</p>}
+   <h4 style={{margin:0}}>Your Gov registry appointments</h4>
+   {registryRoles.length?<Sheet head={['Role','Wallet','Status']} rows={registryRoles.map((role:string)=>[role,address,registryCurrent.length?'Current':'Last verified '+new Date(data.registry.checkedAt).toLocaleTimeString()+' · Sync to recheck'])}/>:<p>{data.registry?.status==='current'&&data.registry?.validUntil>now?'No current Gov registry appointments for this wallet.':'Sync roles to verify current registry appointments.'}</p>}
+   <h4 style={{margin:0}}>Other shared role assignments</h4>
+   {assignments.length?<Sheet head={['Role','Wallet / identity','Status','Expires']} rows={assignments.map((a:any)=>[roleNames.get(a.definitionId)||roleNames.get(a.roleId)||a.roleId,a.principal,a.current?'Current':a.status||'Not currently effective',a.expiresAt?new Date(a.expiresAt).toLocaleDateString():'Ongoing'])}/>:<p>No other matching shared assignments are visible to this wallet.</p>}
    <h4 style={{margin:0}}>Organization membership (separate from Gov access)</h4>
    <p style={{margin:0}}>Partner, Junior Partner and Associate appointments apply across Bittrees. Their BGOV requirements and approvals remain managed in Roles.</p>
    {members.length?<Sheet head={['Role','Wallet','Status','BGOV minimum']} rows={members.map((m:any)=>[names[m.role]||m.role,m.principal,m.status==='active'&&m.minimumBGOV&&!m.tokenEligible?'BGOV eligibility not met':m.status,m.minimumBGOV||'None'])}/>:<p>{data.partnershipActive?'No matching memberships are visible to this wallet.':'Partner membership is currently unavailable.'}</p>}

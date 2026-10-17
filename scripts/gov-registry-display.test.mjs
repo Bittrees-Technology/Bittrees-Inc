@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {currentRegistryRoles} from '../shared/gov-registry-display.mjs';
+const wallet='0x'+'1'.repeat(40),now=10000,proof={project:'gov',wallet,status:'current',checkedAt:now-100,validUntil:now+4000,superadmin:true,admin:true};
+test('shows verified current appointments for the same Gov wallet',()=>{assert.deepEqual(currentRegistryRoles(proof,wallet,now),['Superadmin','Admin']);assert.deepEqual(currentRegistryRoles({...proof,superadmin:false},wallet,now),['Admin']);});
+test('never shows stale, foreign, unavailable or overlong snapshots as current appointments',()=>{for(const change of [{project:'research'},{wallet:'0x'+'2'.repeat(40)},{status:'unavailable'},{validUntil:now},{checkedAt:now+2000},{validUntil:now+10000}])assert.deepEqual(currentRegistryRoles({...proof,...change},wallet,now),[]);assert.deepEqual(currentRegistryRoles(null,wallet,now),[]);});

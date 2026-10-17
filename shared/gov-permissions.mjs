@@ -11,6 +11,6 @@ export function govPermissions(decision,now=Date.now()) {
  return GOV_ACTIONS.filter(a=>permissions.has(a));
 }
 export function govRoleLabels(actions=[]) {
- const names={'tier.partner':'Partner','tier.junior-partner':'Junior Partner','tier.associate':'Associate','project.admin':'Project administrator (existing)','role.admin':'Admin','role.moderator':'Moderator','role.operations':'Operations'};
+ const names={'tier.partner':'Partner','tier.junior-partner':'Junior Partner','tier.associate':'Associate','project.admin':'Admin','role.admin':'Admin','role.moderator':'Moderator','role.operations':'Operations'};
  return [...new Set(actions.filter(a=>Object.hasOwn(names,a)).map(a=>names[a]))].map(label=>({label}));
 }
