@@ -11,7 +11,7 @@ export function requireContributorRoleProof(decision,request){
  if(request.project!=='gov')return decision;
  const e=decision.contributorEligibility;
  if(!e||e.required!==true||typeof e.eligible!=='boolean'||typeof e.rootOverride!=='boolean')throw Error('Contributor credential eligibility unavailable');
- const wallet=request.authenticatedWallet||(request.subjects.length===1?request.subjects[0]:null);
+ const wallet=request.authenticatedWallet;
  if(e.rootOverride&&wallet?.toLowerCase()!==ROOT_AUTHORITY)throw Error('Invalid root recovery authority');
  if(!contributorRoleEligible(decision,wallet)&&decision.actions.length)throw Error('Contributor credential required for Gov authority');
  return decision;

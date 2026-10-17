@@ -20,6 +20,7 @@ test('root override cannot be asserted for a different wallet',()=>{
  assert.throws(()=>requireContributorRoleProof(d,request),/root recovery/);
  assert.equal(requireContributorRoleProof(d,{...request,subjects:[ROOT_AUTHORITY],authenticatedWallet:ROOT_AUTHORITY}),d);
  assert.equal(contributorRoleEligible(d,wallet),false);
+ assert.throws(()=>requireContributorRoleProof(d,{...request,subjects:[ROOT_AUTHORITY],authenticatedWallet:null}),/root recovery/);
 });
 test('unenrolled authority never falls back to legacy grants',async()=>{
  await assert.rejects(authorityDecision(wallet,'rooms.manage',{access:async()=>({enrolled:false})}),/No legacy permissions/);
