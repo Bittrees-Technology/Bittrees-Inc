@@ -110,3 +110,12 @@ main:has(.cp-sheet){max-width:none!important;box-sizing:border-box}
 .cp-memo-summary h4{margin-bottom:0}
 .cp-memo-summary dl{margin-top:1rem}
 .cp-sheet-memoranda .cp-sheet-scroll{min-height:0}
+
+/* A selected memorandum is a document, separate from its queue. */
+.cp-memo-progress{display:flex;gap:1.5rem;list-style:none;padding:0;margin:1rem 0 1.5rem;color:var(--color-ink-dim);font-size:.875rem}
+.cp-memo-progress li{padding-bottom:.5rem;border-bottom:2px solid transparent}
+.cp-memo-progress [aria-current="step"]{color:var(--color-ink);border-color:var(--color-primary);font-weight:600}
+.cp-memo-caption{color:var(--color-ink-dim);font-size:.8125rem}
+.cp-memo-manage{margin-top:1.5rem;border-top:1px solid var(--color-border);padding-top:1rem}
+.cp-memo-manage>summary{color:var(--color-ink-muted)}
+.cp-memo-summary .cp-responsibilities{max-width:74ch}
