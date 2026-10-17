@@ -5,7 +5,7 @@ import {mainnet} from 'viem/chains';
 import {canonical} from '../../shared/signed-action.mjs';
 import {ROOT_AUTHORITY,credentialAbi,credentialDomain,consentTypes,operationHash,actionTypes} from '../../shared/contributor-chain.mjs';
 import {ECOSYSTEM_ENDPOINT,ecosystemSources,ecosystemRequestMessage,ecosystemSubject} from '../../shared/ecosystem-authority.mjs';
-export const CONSENT_WINDOW_SECONDS=30*24*60*60;
+export const NO_CONSENT_EXPIRY=((1n<<256n)-1n).toString();
 const fail=(m,status=409)=>Object.assign(Error(m),{status});
 const hash=x=>'0x'+createHash('sha256').update(x).digest('hex');
 const json=v=>JSON.parse(JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x));
@@ -27,6 +27,7 @@ export async function verifyExpiredMemoConsent(app,ctx){
  const memo=app.memos.at(-1);if(memo?.status!=='draft'||!memo.consent)return false;
  if(app.chainOperation?.status==='prepared')throw fail('Reconcile the prepared transaction before changing its terms.');
  const consent=memo.consent.typedData,contract=consent?.domain?.verifyingContract;
+ if(consent?.message?.deadline===NO_CONSENT_EXPIRY)throw fail('This issuance authorization has no expiry. Issue the accepted memorandum before amending it.');
  if(!/^0x[a-fA-F0-9]{40}$/.test(contract||'')||!Number.isSafeInteger(Number(consent?.message?.deadline)))throw fail('The previous signed memorandum needs manual reconciliation.');
  const block=await ctx.client.getBlock({blockTag:'finalized'});
  if(Number(block.timestamp)<=Number(consent.message.deadline))throw fail('The signed memorandum remains valid until '+new Date(Number(consent.message.deadline)*1000).toISOString()+'. Wait for Ethereum finality before revising it.');
@@ -37,7 +38,7 @@ export async function verifyExpiredMemoConsent(app,ctx){
 export async function prepareConsent(app,session,project,ctx){
  if(app.chainOperation?.status==='prepared')throw fail('Reconcile the prepared transaction before signing again.');
  if(app.identity!==session.identity||session.wallet!==app.wallet)throw fail('Sign in and verify the contributor wallet.',403);
- const memo=currentMemo(app),deadline=Math.floor(Date.now()/1000)+CONSENT_WINDOW_SECONDS;
+ const memo=currentMemo(app),deadline=NO_CONSENT_EXPIRY;
  return json({domain:credentialDomain(ctx.contract),types:consentTypes,primaryType:'Consent',message:{recipient:app.wallet,...termsFor(app,memo,project),nonce:await ctx.read('nonces',[app.wallet]),deadline}});
 }
 export async function acceptConsent(app,session,project,ctx,{typedData,signature}){
@@ -46,7 +47,7 @@ export async function acceptConsent(app,session,project,ctx,{typedData,signature
  const memo=currentMemo(app),nonce=await ctx.read('nonces',[app.wallet]);
  const expected={domain:credentialDomain(ctx.contract),types:consentTypes,primaryType:'Consent',message:{recipient:app.wallet,...termsFor(app,memo,project),nonce:String(nonce),deadline:typedData?.message?.deadline}};
  const deadline=Number(expected.message.deadline),now=Math.floor(Date.now()/1000);
- if(!Number.isSafeInteger(deadline)||deadline<=now||deadline>now+CONSENT_WINDOW_SECONDS||canonical(json(expected))!==canonical(typedData)||!await ctx.client.verifyTypedData({...expected,address:app.wallet,signature}))throw fail('The signed memorandum does not match the current terms.',403);
+ if((expected.message.deadline!==NO_CONSENT_EXPIRY&&(!Number.isSafeInteger(deadline)||deadline<=now||deadline>now+30*86400))||canonical(json(expected))!==canonical(typedData)||!await ctx.client.verifyTypedData({...expected,address:app.wallet,signature}))throw fail('The signed memorandum does not match the current terms.',403);
  memo.consent={typedData,signature};memo.acknowledgedAt=new Date().toISOString();memo.acknowledgedBy=session.identity;
 }
 export async function requestPermit(ctx,session,project,actionHash,{env=process.env,fetcher=fetch}={}){
@@ -64,7 +65,7 @@ export async function prepareExecution(app,actor,session,project,ctx,input,optio
  if(!actor.issue||!actor.decide.includes(app.lane)||!session.wallet)throw fail('A verified Partner wallet is required.',403);
  if(app.chainOperation?.status==='prepared'){
   const old=app.chainOperation;const block=await ctx.client.getBlock({blockTag:'latest'});
-  if(old.contract===ctx.contract&&old.actor===session.wallet&&input.kind===(old.kind==='bootstrap'?'issue':old.kind)&&(old.kind!=='standing'||(input.standing===old.standing&&input.reason?.trim()===old.reason))&&Number(block.timestamp)<=Number(old.deadline))return {to:old.kind==='bootstrap'?ROOT_AUTHORITY:old.contract,data:old.data,chainId:1,value:'0',operationId:old.id,expiresAt:Number(old.deadline)*1000};
+  if(old.contract===ctx.contract&&old.actor===session.wallet&&input.kind===(old.kind==='bootstrap'?'issue':old.kind)&&(old.kind!=='standing'||(input.standing===old.standing&&input.reason?.trim()===old.reason))&&Number(block.timestamp)<=Number(old.deadline))return {to:old.kind==='bootstrap'?ROOT_AUTHORITY:old.contract,data:old.data,chainId:1,value:'0',operationId:old.id,expiresAt:old.deadline===NO_CONSENT_EXPIRY?null:Number(old.deadline)*1000};
   if(old.kind==='bootstrap'){if(String(await ctx.read('nextId'))!=='1')throw fail('Reconcile the root issuance before preparing another transaction.');}
   const nonce=old.kind==='bootstrap'?null:await ctx.read('actionNonces',[old.actor]);
   if(Number(block.timestamp)<=Number(old.deadline)||(old.kind!=='bootstrap'&&String(nonce)!==old.permitNonce))throw fail('Reconcile the prepared transaction before creating another.');
@@ -91,7 +92,7 @@ export async function prepareExecution(app,actor,session,project,ctx,input,optio
   const inner=encodeFunctionData({abi:credentialAbi,functionName:'bootstrapContributor',args}),zero='0x'+'0'.repeat(40),ownerSignature='0x'+session.wallet.slice(2).padStart(64,'0')+'0'.repeat(64)+'01';
   const data=encodeFunctionData({abi:safeAbi,functionName:'execTransaction',args:[ctx.contract,0n,inner,0,0n,0n,0n,zero,zero,ownerSignature]});
   app.chainOperation=json({id:randomUUID(),kind:'bootstrap',actor:session.wallet,contract:ctx.contract,chainId:1,memoVersion:memo.version,args,data,deadline:args[2],createdAt:new Date().toISOString(),status:'prepared'});
-  return {to:ROOT_AUTHORITY,data,chainId:1,value:'0',operationId:app.chainOperation.id,expiresAt:Number(args[2])*1000};
+  return {to:ROOT_AUTHORITY,data,chainId:1,value:'0',operationId:app.chainOperation.id,expiresAt:args[2]===NO_CONSENT_EXPIRY?null:Number(args[2])*1000};
  }
  const actionHash=operationHash(kind,args),permit=await requestPermit(ctx,session,project,actionHash,options);
  const functionName={issue:'issueAuthorized',amend:'amendAuthorized',standing:'standingAuthorized',replace:'replaceAuthorized'}[kind];
