@@ -205,3 +205,15 @@ test('new applications can be decided in one step while Associate recommendation
  const recommended=core.transition(initial,{...partner,id:'associate',decide:[],issue:false},app.id,change);assert.equal(recommended.applications[0].state,'pending_authority');
  assert.throws(()=>core.transition(initial,applicant,app.id,change),/Reviewer permission/);
 });
+
+test('only the applicant edits application details without changing approved authority or terms',()=>{
+ const core=contributorService();let state=core.submitInterest(emptyState(),applicant,'research',interest);const id=state.applications[0].id;
+ const update={action:'edit_application',expectedVersion:state.applications[0].version,name:'Updated name',specialty:'Updated interests'};
+ assert.throws(()=>core.transition(state,partner,id,update),/Only the applicant/);
+ assert.throws(()=>core.transition(state,applicant,id,{...update,wallet:'0x'+'2'.repeat(40)}),/Unexpected field/);
+ state.applications[0].state='pending_authority';state=core.transition(state,applicant,id,update);assert.equal(state.applications[0].state,'submitted');assert.equal(state.applications[0].applicationEdits[0].before.name,interest.name);
+ assert.throws(()=>core.transition(state,applicant,id,update),/record changed/);
+ const a=state.applications[0];a.state='approved';a.memos=[{version:1,status:'issued',scope:'Signed responsibilities'}];a.credential={tokenId:'1'};a.sourceAttestation={uid:'original'};
+ const next=core.transition(state,applicant,id,{action:'edit_application',expectedVersion:a.version,specialty:'New interests'}).applications[0];
+ assert.equal(next.state,'approved');assert.deepEqual(next.memos,a.memos);assert.deepEqual(next.credential,a.credential);assert.deepEqual(next.sourceAttestation,a.sourceAttestation);assert.equal(next.applicationEdits.length,2);
+});

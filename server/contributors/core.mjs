@@ -78,6 +78,18 @@ function transition(original,actor,id,input,{expiredConsentVerified=false}={}){
   if(app.state!=='approved')fail('Accept the application before preparing a memo.',409);
   if(app.credential&&app.credential.standing==='suspended')fail('Resume the credential before revising its memorandum.',409);
   const memo=draftMemo(state,actor,app,input);log(state,actor,app,action,{memoVersion:memo.version,hash:memo.hash});
+ }else if(action==='edit_application'){
+  const editable=['name','twitter','telegram','expertise','specialty','expertField','region','languages','heardFrom','referrer'];
+  fields(input,['action','expectedVersion',...editable]);
+  if(!owns(actor,app))fail('Only the applicant can edit their application.',403);
+  const site=app.lane==='research'?'research':'gov';
+  const existing=Object.fromEntries(['name','email','twitter','telegram','expertise','requestedRoles','specialty','expertField','region','languages','heardFrom','referrer','wallet'].map(k=>[k,app[k]]));
+  const normalized=normalizeInterest({...existing,...Object.fromEntries(editable.filter(k=>k in input).map(k=>[k,input[k]]))},site,actor);
+  const before=Object.fromEntries(editable.map(k=>[k,app[k]??null]));
+  for(const k of editable)app[k]=normalized[k];
+  app.applicationEdits=[...(app.applicationEdits||[]),{at:new Date().toISOString(),actor:actor.id,before,after:Object.fromEntries(editable.map(k=>[k,app[k]]))}];
+  if(['in_review','pending_authority','needs_info'].includes(app.state))app.state='submitted';
+  log(state,actor,app,action,{fields:editable.filter(k=>JSON.stringify(before[k])!==JSON.stringify(app[k])),state:app.state});
  }else if(action==='respond_info'){
   fields(input,['action','expectedVersion','reason']);
   if(!owns(actor,app))fail('Only the applicant can respond.',403);
