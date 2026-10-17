@@ -33,8 +33,8 @@ export default function SharedGovRoles({address}:{address?:string}) {
         <li>Moderator and Operations: retain their specific Gov duties.</li></ul>
         <p>Superadmin appointments require a verified wallet with an issued, current and active memorandum of contribution NFT. The credential must remain valid to retain Superadmin access. This continuing requirement applies to project and ecosystem Superadmins. Gov Partner, Junior Partner, Associate, Admin and operational roles also require a valid contributor credential at assignment and throughout their access.</p>
         <p>bittrees.eth retains override and recovery authority. An invalid contributor credential pauses affected role access without deleting the appointment history. Existing BGOV and approval requirements still apply.</p>
-        <p>The credential rule takes effect through the approved Roles rollout. Review its activation status in Roles; publishing this rule does not execute a contract upgrade.</p>
-        <a href="https://roles.bittrees.org/activity/rules">Review Roles rules and implementation status</a>
+        <p>Gov checks current signed Roles permissions before protected actions. Role appointments and changes still require their approved signing process.</p>
+        <a href="https://roles.bittrees.org/rules">Review Roles rules</a>
       </details>
     </section>
     <GovRoleRoster address={address} />
