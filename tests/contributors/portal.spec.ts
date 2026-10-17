@@ -29,7 +29,7 @@ test('memorandum has one acknowledgment action and hides completed sync and redu
  await expect(page.getByRole('heading',{name:'Continue a Base application'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'Verify connected wallet'})).not.toBeVisible();
  await expect(page.getByText('Document fingerprint:',{exact:false})).not.toBeVisible();
- await page.getByText('Prepare a revised memorandum',{exact:true}).click();
+ await page.getByText('Manage memorandum & history',{exact:true}).click();await page.getByText('Prepare a revised memorandum',{exact:true}).click();
  await expect(page.getByRole('combobox',{name:'Contribution level',exact:true})).toHaveValue('Full Time');
  await expect(page.getByRole('combobox',{name:'Term',exact:true})).toHaveValue('ongoing');
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -44,7 +44,7 @@ test('applicant proposes edits and Partner reviews the exact changes before a fr
  await page.goto('/admin/contributors');await openMemorandum(page);await page.getByText('Propose changes to this memorandum',{exact:true}).click();await page.getByLabel('Proposed responsibilities').fill('Revised responsibilities');await page.getByLabel('Reason for proposed edits').fill('Clarify expected work');await page.getByRole('button',{name:'Send edits for review'}).click();
  await expect(page.getByText('Signing and issuance are paused.',{exact:false})).toBeVisible();expect(submitted.memoHash).toBe(memo.hash);expect(submitted.end).toBe(null);
  await expect(page.getByRole('button',{name:'Accept edits and prepare new version'})).toHaveCount(0);
- reviewer=true;await page.reload();await openMemorandum(page);await expect(page.getByText('Proposed: Revised responsibilities',{exact:true})).toBeVisible();await page.getByLabel('Explanation for the contributor').fill('Scope agreed');await page.getByRole('button',{name:'Accept edits and prepare new version'}).click();await expect(page.getByRole('heading',{name:'Memorandum · version 2',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Prepare credential transaction'})).toHaveCount(0);
+ reviewer=true;await page.reload();await openMemorandum(page);await expect(page.getByText('Proposed: Revised responsibilities',{exact:true})).toBeVisible();await page.getByLabel('Explanation for the contributor').fill('Scope agreed');await page.getByRole('button',{name:'Accept edits and prepare new version'}).click();await expect(page.getByText('Version 2 · Ready for contributor review',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Prepare credential transaction'})).toHaveCount(0);
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'artifacts/contributor-negotiation-mobile.png',fullPage:true});
 });
 
@@ -107,8 +107,8 @@ test('Directory profiles and memorandum issuance use separate tabs for the same 
  await expect(page.getByRole('button',{name:'Prepare credential transaction',exact:true})).toHaveCount(0);await expect(page.getByRole('heading',{name:'Transaction awaiting confirmation'})).toHaveCount(0);await expect(page.getByText('Prepare a revised memorandum',{exact:true})).toHaveCount(0);
  await page.screenshot({path:'artifacts/contributor-directory-separated.png',fullPage:true});
  await page.getByRole('button',{name:'Open memorandum',exact:true}).click();await expect(page.getByRole('button',{name:'Memoranda & issuance',exact:true})).toHaveAttribute('aria-current','page');
- const queue=page.getByRole('region',{name:'Memorandum queue',exact:true});await expect(queue.locator('tbody tr')).toHaveCount(2);await expect(queue).not.toContainText('Pending applicant');await expect(page.getByRole('heading',{name:'Selected contributor',exact:true})).toBeVisible();
+ const queue=page.getByRole('region',{name:'Memorandum queue',exact:true});await expect(queue).toHaveCount(0);await expect(page.getByRole('heading',{name:'Selected contributor',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Prepare credential transaction',exact:true})).toHaveCount(0);await expect(page.getByRole('heading',{name:'Transaction awaiting confirmation'})).toBeVisible();await expect(page.getByText('Edit contributor profile and staff notes',{exact:true})).toHaveCount(0);
  await page.screenshot({path:'artifacts/contributor-memoranda-separated.png',fullPage:true});
- await page.getByRole('button',{name:'View contributor profile',exact:true}).click();await expect(page.getByRole('heading',{name:'Selected contributor',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Directory',exact:true})).toHaveAttribute('aria-current','page');
+ await page.getByRole('button',{name:'Directory',exact:true}).click();await expect(page.getByRole('heading',{name:'Selected contributor',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Directory',exact:true})).toHaveAttribute('aria-current','page');
 });
