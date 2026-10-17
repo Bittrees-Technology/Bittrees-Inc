@@ -11,7 +11,7 @@ for(const stage of ['unsigned','signed','pending','issued'])test(`memo ${stage} 
  await expect(page.getByRole('combobox',{name:'New standing',exact:true})).not.toBeVisible();
  if(stage==='signed'){await expect(page.getByRole('button',{name:'Prepare credential transaction'})).toBeVisible();await page.getByText('Renew signed acknowledgment',{exact:true}).click();await expect(page.getByRole('button',{name:'Renew memorandum signature'})).toBeVisible();await page.getByText('Renew signed acknowledgment',{exact:true}).click();}
  else await expect(page.getByRole('button',{name:'Prepare credential transaction'})).toHaveCount(0);
- if(stage==='pending')await expect(page.getByRole('heading',{name:'Transaction awaiting confirmation'})).toBeVisible();
+ if(stage==='pending'){await expect(page.getByRole('heading',{name:'Transaction awaiting confirmation'})).toBeVisible();await expect(page.getByRole('button',{name:'Resume issuance in wallet'})).toBeVisible();}
  if(stage==='issued'){await page.getByText('Change credential standing',{exact:true}).click();await expect(page.getByRole('combobox',{name:'New standing'})).toBeVisible();await page.getByText('Change credential standing',{exact:true}).click();}
  if(stage==='unsigned')await expect(page.getByRole('button',{name:'Sign memorandum with wallet'})).toBeVisible();
  await page.screenshot({path:`artifacts/memo-simple-${stage}.png`,fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.getByRole('button',{name:'← All memoranda'}).click();await expect(queue.getByRole('columnheader')).toHaveCount(5);
