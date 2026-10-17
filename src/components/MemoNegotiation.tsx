@@ -20,13 +20,13 @@ export default function MemoNegotiation({app,memo,own,actor,busy,change,today}:a
  <label className="cp-field"><span>Reason for individual weight</span><textarea name="allocationReason" maxLength={2000} defaultValue={memo.allocationWeight?.reason||''}/></label></details>
  <label className="cp-field"><span>Reason for proposed edits</span><textarea name="reason" required maxLength={2000}/></label>
  <button disabled={busy}>Send edits for review</button></form></details>}
- {(app.memoEdits||[]).map((edit:any)=>{const base=app.memos.find((m:any)=>m.version===edit.baseVersion);return <section className="cp-panel" key={edit.id}><h4>Proposed edits to version {edit.baseVersion} · {edit.state}</h4><p>{edit.reason}</p>
+ {(app.memoEdits||[]).map((edit:any)=>{const base=app.memos.find((m:any)=>m.version===edit.baseVersion);return <details className="cp-panel" key={edit.id+edit.state} open={edit.state==='pending'}><summary>Proposed edits to version {edit.baseVersion} · {edit.state}</summary><p>{edit.reason}</p>
  <div className="cp-memo-diff">{Object.entries(labels).filter(([key])=>display(key,base?.[key])!==display(key,edit.terms[key])).map(([key,title])=><div key={key}><strong>{title}</strong><p>Previous: {display(key,base?.[key])}</p><p>Proposed: {display(key,edit.terms[key])}</p></div>)}</div>
  {edit.terms.allocationWeight?.custom&&<p>Weight exception reason: {edit.terms.allocationWeight.reason}</p>}
  <small>Requested by {edit.requestedBy} · {edit.requestedAt}</small>
  {edit.reviewedBy&&<p>{edit.decisionReason} — reviewed by {edit.reviewedBy} on {edit.reviewedAt}{edit.acceptedVersion?` · New version ${edit.acceptedVersion} requires your signature.`:''}</p>}
  {actor.canIssue&&edit.state==='pending'&&edit.requestedBy!==actor.id&&<form onSubmit={e=>{e.preventDefault();const button=(e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement;change('review_memo_edit',{editId:edit.id,decision:button.value,...Object.fromEntries(new FormData(e.currentTarget))});}}><label className="cp-field"><span>Revised effective date</span><input type="date" name="start" required defaultValue={edit.terms.start<today?today:edit.terms.start}/></label><p>The accepted version will use this effective date and require a fresh contributor signature.</p><label className="cp-field"><span>Explanation for the contributor</span><textarea name="reason" required maxLength={2000}/></label><button disabled={busy} value="approve">Accept edits and prepare new version</button><button disabled={busy} value="reject">Decline edits</button></form>}
  {actor.canIssue&&edit.state==='pending'&&edit.requestedBy===actor.id&&<p>Another Partner must review your proposed edits.</p>}
- </section>;})}
+ </details>;})}
  </>;
 }
