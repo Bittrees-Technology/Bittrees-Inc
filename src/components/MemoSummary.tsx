@@ -16,12 +16,13 @@ export default function MemoSummary({app,memo,own,actor,busy,signMemo,executeCha
   <h4>Responsibilities</h4><p className="cp-responsibilities">{memo.scope}</p>
   {memo.allocationWeight&&<><p>Allocation weight: {memo.allocationWeight.label} of the Full Time baseline{memo.allocationWeight.custom?' (individual agreement)':''}.</p>{memo.allocationWeight.custom&&<p>{memo.allocationWeight.reason}</p>}<p>{memo.allocationNotice||'This earlier memorandum needs revised allocation terms before issuance.'}</p></>}
   {memo.historicalServiceStart&&<p>Historical service since {memo.historicalServiceStart}. Credential validity begins with the memorandum term.</p>}
-  <details><summary>Signature and verification details</summary><p>Prepared / approved by {memo.issuer}</p><small className="cp-hash">Document fingerprint: {memo.hash}</small>{memo.acknowledgedAt&&<p>Acknowledged on {memo.acknowledgedAt}.</p>}{app.credential&&<p>Issued by {app.credential.issuedBy||'See transaction record'} · <a href={`https://etherscan.io/tx/${app.credential.transactionHash}`} target="_blank" rel="noreferrer">Issuance receipt</a></p>}</details>
+
   {signable&&!memo.consent&&<p>Review the terms above, then sign to accept. You can propose changes below before signing.</p>}
   {!own&&!memo.consent&&!pending&&!inFlight&&memo.status==='draft'&&<p role="status">Waiting for the contributor to review and sign this memorandum.</p>}
   {actor.canIssue&&memo.consent&&!pending&&!inFlight&&memo.status==='draft'&&<p>The contributor has accepted. Prepare the wallet transaction to issue their NFT.</p>}
   {signable&&!memo.consent&&<button className="cp-primary" disabled={busy} onClick={signMemo}>Sign memorandum with wallet</button>}
   {actor.canIssue&&!pending&&!inFlight&&memo.consent&&memo.status==='draft'&&<button className="cp-primary" disabled={busy} onClick={()=>executeChain(!app.credential?'issue':['ended','revoked'].includes(app.credential.standing)?'replace':'amend')}>Prepare credential transaction</button>}
+  <details><summary>Signature and verification details</summary><p>Prepared / approved by {memo.issuer}</p><small className="cp-hash">Document fingerprint: {memo.hash}</small>{memo.acknowledgedAt&&<p>Acknowledged on {memo.acknowledgedAt}.</p>}{app.credential&&<p>Issued by {app.credential.issuedBy||'See transaction record'} · <a href={`https://etherscan.io/tx/${app.credential.transactionHash}`} target="_blank" rel="noreferrer">Issuance receipt</a></p>}</details>
   {signable&&memo.consent&&<details><summary>Renew signed acknowledgment</summary><p>Only renew if issuance requires a fresh signature. This does not change the agreed terms.</p><button disabled={busy} onClick={signMemo}>Renew memorandum signature</button></details>}
  </section>;
 }
