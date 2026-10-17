@@ -2,17 +2,10 @@ import {useAuthorityAccess} from './authorityAccess';
 import { useIsAdmin } from "./snapshot";
 import { useUserRoles } from "./community";
 
-/**
- * Admin-console access tiers.
- *  - "full"       — every tab + write access: Snapshot space admins, the standing
- *                   super-admin address, or a Partner / Junior Partner / Associate role.
- *  - "moderation" — only the Moderation tab: holders of the Moderator role.
- *  - "none"       — no admin access.
- *
- * The same tiers are enforced server-side in api/community.js + api/rooms.js (and
- * read live from the roles registry), so the UI gating matches what actually saves.
- * NOTE: Snapshot Space-settings writes still require a real Snapshot space admin —
- * that's enforced by Snapshot's sequencer, outside this app.
+/** Current signed permissions determine UI access after authority cutover.
+ * Legacy fallbacks apply only when the server explicitly reports no shared policy.
+ * Partner membership never appoints a site administrator under shared authority.
+ * Snapshot retains its own authorization for space-settings writes.
  */
 export const SUPER_ADMIN = "0xe5350d96fc3161bf5c385843ec5ee24e8b465b2f"; // always full access
 const FULL_ROLE_RE = /^(partner|junior partner|associate)$/i;
@@ -26,7 +19,7 @@ export function useAdminAccess(address?: string): AdminLevel {
   const policy=useAuthorityAccess(address);
   if (!address) return "none";
   {
-    if(policy.isError || !policy.data)return "none";
+    if(policy.isError || !policy.data || (policy.data.expiresAt !== undefined && policy.data.expiresAt <= Date.now()))return "none";
     if(policy.data.configured)return policy.data.permissions.includes('community.roles.manage')||policy.data.permissions.includes('rooms.manage')?'full':policy.data.permissions.includes('community.moderation.manage')?'moderation':'none';
   }
   if (isSpaceAdmin || address.toLowerCase() === SUPER_ADMIN || roles.some((r) => FULL_ROLE_RE.test(r.label))) return "full";
@@ -43,7 +36,8 @@ export function useCanProposeRoom(address?: string): boolean {
   const roles = useUserRoles(address);
   const policy=useAuthorityAccess(address);
   if (!address) return false;
-  if(policy.data?.configured)return policy.data.permissions.includes("rooms.propose");
+  if(policy.isError || !policy.data || (policy.data.expiresAt !== undefined && policy.data.expiresAt <= Date.now()))return false;
+  if(policy.data.configured)return policy.data.permissions.includes("rooms.propose");
   if(policy.isError)return false;
   if (level === "full") return true;
   return roles.some((r) => PROPOSE_ROLE_RE.test(r.label));

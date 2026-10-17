@@ -24,6 +24,18 @@ export default function SharedGovRoles({address}:{address?:string}) {
       <a href="https://roles.bittrees.org/partnership">Partner decisions</a>
       <a href="https://roles.bittrees.org/profile">My role profile</a>
     </nav>
+    <section aria-label="Gov role structure" className="card">
+      <h3>Membership and site administration</h3>
+      <p>Partner, Junior Partner and Associate are Bittrees memberships. A Partner is eligible for a separate Gov Superadmin appointment; membership alone does not grant site administration.</p>
+      <details><summary>Planned administration rules · approval pending</summary>
+        <ul><li>Superadmin: appointed through Partner approval, with root Safe control; manages Gov Admins and approved operational roles.</li>
+        <li>Admin: manages designated operational roles, not Admin or Superadmin appointments.</li>
+        <li>Moderator and Operations: retain their specific Gov duties.</li></ul>
+        <p>Administrative appointments require a verified wallet. Email invitations for ordinary roles remain pending until verified. Losing Partner eligibility suspends a Superadmin appointment under the proposed rules.</p>
+        <p>This hierarchy is not active yet. Existing assignments remain governed by the current approved policy. Contract deployment and authority changes require approval; no automatic promotion occurs.</p>
+        <a href="https://tld.bittrees.org/">Review controller policies in TLD</a>
+      </details>
+    </section>
     <GovRoleRoster address={address} />
     <details><summary>Your effective Gov access</summary>
     {!address ? <p>Connect your wallet at the top right to see your Gov access.</p> : <>

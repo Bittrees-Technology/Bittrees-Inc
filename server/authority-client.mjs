@@ -1,12 +1,10 @@
+import {govPermissions} from '../shared/gov-permissions.mjs';
 import {ecosystemAccess} from './ecosystem-client.mjs';
 import {createPrivateKey,sign,randomUUID} from 'node:crypto';
 export async function authorityDecision(actor,action){
  const shared=await ecosystemAccess('gov',[actor.toLowerCase()],{authenticatedWallet:actor.toLowerCase()});
  if(shared.enrolled){
-  const admin=shared.authoritative&&shared.actions.some(a=>['project.admin','role.admin'].includes(a));
-  const moderator=shared.authoritative&&shared.actions.includes('role.moderator');
-  const propose=shared.authoritative&&shared.actions.some(a=>['project.admin','role.operations','role.steward','tier.partner','tier.junior-partner','tier.associate'].includes(a));
-  const allowed=shared.actions.includes(action)|| (action==='community.moderation.manage'?admin||moderator:action==='rooms.propose'?propose:admin);
+  const allowed=govPermissions(shared).includes(action);
   return {allowed,configured:true,centralized:true,expiresAt:new Date(shared.expiresAt).toISOString(),reason:allowed?'Approved by Roles':'No current shared role',actions:shared.actions};
  }
 
