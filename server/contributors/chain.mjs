@@ -5,6 +5,7 @@ import {mainnet} from 'viem/chains';
 import {canonical} from '../../shared/signed-action.mjs';
 import {ROOT_AUTHORITY,credentialAbi,credentialDomain,consentTypes,operationHash,actionTypes} from '../../shared/contributor-chain.mjs';
 import {ECOSYSTEM_ENDPOINT,ecosystemSources,ecosystemRequestMessage,ecosystemSubject} from '../../shared/ecosystem-authority.mjs';
+export const CONSENT_WINDOW_SECONDS=30*24*60*60;
 const fail=(m,status=409)=>Object.assign(Error(m),{status});
 const hash=x=>'0x'+createHash('sha256').update(x).digest('hex');
 const json=v=>JSON.parse(JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x));
@@ -36,7 +37,7 @@ export async function verifyExpiredMemoConsent(app,ctx){
 export async function prepareConsent(app,session,project,ctx){
  if(app.chainOperation?.status==='prepared')throw fail('Reconcile the prepared transaction before signing again.');
  if(app.identity!==session.identity||session.wallet!==app.wallet)throw fail('Sign in and verify the contributor wallet.',403);
- const memo=currentMemo(app),deadline=Math.floor(Date.now()/1000)+86400;
+ const memo=currentMemo(app),deadline=Math.floor(Date.now()/1000)+CONSENT_WINDOW_SECONDS;
  return json({domain:credentialDomain(ctx.contract),types:consentTypes,primaryType:'Consent',message:{recipient:app.wallet,...termsFor(app,memo,project),nonce:await ctx.read('nonces',[app.wallet]),deadline}});
 }
 export async function acceptConsent(app,session,project,ctx,{typedData,signature}){
@@ -45,7 +46,7 @@ export async function acceptConsent(app,session,project,ctx,{typedData,signature
  const memo=currentMemo(app),nonce=await ctx.read('nonces',[app.wallet]);
  const expected={domain:credentialDomain(ctx.contract),types:consentTypes,primaryType:'Consent',message:{recipient:app.wallet,...termsFor(app,memo,project),nonce:String(nonce),deadline:typedData?.message?.deadline}};
  const deadline=Number(expected.message.deadline),now=Math.floor(Date.now()/1000);
- if(!Number.isSafeInteger(deadline)||deadline<=now||deadline>now+86400||canonical(json(expected))!==canonical(typedData)||!await ctx.client.verifyTypedData({...expected,address:app.wallet,signature}))throw fail('The signed memorandum does not match the current terms.',403);
+ if(!Number.isSafeInteger(deadline)||deadline<=now||deadline>now+CONSENT_WINDOW_SECONDS||canonical(json(expected))!==canonical(typedData)||!await ctx.client.verifyTypedData({...expected,address:app.wallet,signature}))throw fail('The signed memorandum does not match the current terms.',403);
  memo.consent={typedData,signature};memo.acknowledgedAt=new Date().toISOString();memo.acknowledgedBy=session.identity;
 }
 export async function requestPermit(ctx,session,project,actionHash,{env=process.env,fetcher=fetch}={}){

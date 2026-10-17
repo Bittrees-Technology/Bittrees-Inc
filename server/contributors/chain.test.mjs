@@ -37,3 +37,11 @@ test('issuance rechecks signed contract, recipient and terms and refuses prepare
  a.memos[0].hash='b'.repeat(64);await assert.rejects(()=>prepareExecution(a,actor,session,'gov',ctx,{kind:'issue'}),/for this contract/);
  a.chainOperation={status:'prepared'};await assert.rejects(()=>prepareConsent(a,session,'gov',ctx),/Reconcile/);await assert.rejects(()=>acceptConsent(a,session,'gov',ctx,{typedData,signature}),/Reconcile/);
 });
+
+test('issuance authorization lasts thirty days and rejects signatures beyond that window',async()=>{
+ const a=app(),ctx={contract,read:async()=>0n,client:{verifyTypedData}},now=Math.floor(Date.now()/1000);
+ const typedData=await prepareConsent(a,session,'gov',ctx);assert.ok(Number(typedData.message.deadline)>=now+30*86400);assert.ok(Number(typedData.message.deadline)<=now+30*86400+2);
+ const signature=await account.signTypedData(typedData);await acceptConsent(a,session,'gov',ctx,{typedData,signature});
+ const excessive=structuredClone(typedData);excessive.message.deadline=now+31*86400;
+ const excessiveSignature=await account.signTypedData(excessive);await assert.rejects(()=>acceptConsent(a,session,'gov',ctx,{typedData:excessive,signature:excessiveSignature}),/does not match/);
+});
