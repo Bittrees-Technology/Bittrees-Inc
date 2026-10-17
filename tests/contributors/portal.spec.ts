@@ -108,7 +108,7 @@ test('Directory profiles and memorandum issuance use separate tabs for the same 
  await page.screenshot({path:'artifacts/contributor-directory-separated.png',fullPage:true});
  await page.getByRole('button',{name:'Open memorandum',exact:true}).click();await expect(page.getByRole('button',{name:'Memoranda & issuance',exact:true})).toHaveAttribute('aria-current','page');
  const queue=page.getByRole('region',{name:'Memorandum queue',exact:true});await expect(queue.locator('tbody tr')).toHaveCount(2);await expect(queue).not.toContainText('Pending applicant');await expect(page.getByRole('heading',{name:'Selected contributor',exact:true})).toBeVisible();
- await expect(page.getByRole('button',{name:'Prepare credential transaction',exact:true})).toBeVisible();await expect(page.getByRole('heading',{name:'Transaction awaiting confirmation'})).toBeVisible();await expect(page.getByText('Edit contributor profile and staff notes',{exact:true})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'Prepare credential transaction',exact:true})).toHaveCount(0);await expect(page.getByRole('heading',{name:'Transaction awaiting confirmation'})).toBeVisible();await expect(page.getByText('Edit contributor profile and staff notes',{exact:true})).toHaveCount(0);
  await page.screenshot({path:'artifacts/contributor-memoranda-separated.png',fullPage:true});
  await page.getByRole('button',{name:'View contributor profile',exact:true}).click();await expect(page.getByRole('heading',{name:'Selected contributor',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Directory',exact:true})).toHaveAttribute('aria-current','page');
 });

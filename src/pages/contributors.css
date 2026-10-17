@@ -103,7 +103,10 @@ main:has(.cp-sheet){max-width:none!important;box-sizing:border-box}
  .cp-bulk-unlock{gap:.25rem}
 }
 
-.cp-sheet-memoranda table{min-width:1650px}
-.cp-sheet-memoranda thead th:nth-child(5){width:130px}
-.cp-sheet-memoranda thead th:nth-child(7){width:300px}
-.cp-sheet-memoranda thead th:nth-child(9){width:210px}
+/* Keep the issuance queue compact; full terms belong in the document below. */
+.cp-sheet-memoranda table{min-width:640px;table-layout:auto}
+.cp-sheet-memoranda thead th:nth-child(3){width:auto}
+.cp-sheet-memoranda thead th:nth-child(5){width:90px}
+.cp-memo-summary h4{margin-bottom:0}
+.cp-memo-summary dl{margin-top:1rem}
+.cp-sheet-memoranda .cp-sheet-scroll{min-height:0}
