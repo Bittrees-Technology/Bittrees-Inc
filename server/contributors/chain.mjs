@@ -7,6 +7,7 @@ import {ROOT_AUTHORITY,credentialAbi,credentialDomain,consentTypes,operationHash
 import {ECOSYSTEM_ENDPOINT,ecosystemSources,ecosystemRequestMessage,ecosystemSubject} from '../../shared/ecosystem-authority.mjs';
 export const NO_CONSENT_EXPIRY=((1n<<256n)-1n).toString();
 const fail=(m,status=409)=>Object.assign(Error(m),{status});
+async function chainRead(label,read){try{return await read();}catch{throw fail('Ethereum verification is unavailable while reading '+label+'. No credential change was recorded. Retry shortly.',503);}}
 const hash=x=>'0x'+createHash('sha256').update(x).digest('hex');
 const json=v=>JSON.parse(JSON.stringify(v,(_,x)=>typeof x==='bigint'?String(x):x));
 const levels=['Advisor','Part Time','Half Time','Full Time'],ranks=['Contributor','Senior contributor','Lead contributor'],standings=['active','suspended','ended','revoked'];
@@ -15,9 +16,9 @@ export async function chainContext(env=process.env,client){
  const contract=env.CONTRIBUTOR_CONTRACT_ADDRESS?.toLowerCase();
  if(!/^0x[a-f0-9]{40}$/.test(contract||'')||!/^0x[a-f0-9]{64}$/.test(env.CONTRIBUTOR_CONTRACT_CODE_HASH||''))throw fail('The credential contract is awaiting deployment and verification.',503);
  client ||= createPublicClient({chain:mainnet,transport:http(env.ETHEREUM_RPC_URL,{timeout:10000,retryCount:0})});
- if(await client.getChainId()!==1)throw fail('Ethereum mainnet is required.',503);
- const code=await client.getCode({address:contract});if(!code||keccak256(code)!==env.CONTRIBUTOR_CONTRACT_CODE_HASH)throw fail('Contract verification failed.',503);
- const read=(functionName,args=[],blockNumber)=>client.readContract({address:contract,abi:credentialAbi,functionName,args,...(blockNumber===undefined?{}:{blockNumber})});
+ if(await chainRead('the network',()=>client.getChainId())!==1)throw fail('Ethereum mainnet is required.',503);
+ const code=await chainRead('the credential contract',()=>client.getCode({address:contract}));if(!code||keccak256(code)!==env.CONTRIBUTOR_CONTRACT_CODE_HASH)throw fail('Contract verification failed.',503);
+ const read=(functionName,args=[],blockNumber)=>chainRead('credential '+functionName,()=>client.readContract({address:contract,abi:credentialAbi,functionName,args,...(blockNumber===undefined?{}:{blockNumber})}));
  if((await read('rootAuthority')).toLowerCase()!==ROOT_AUTHORITY.toLowerCase())throw fail('Unexpected root authority.',503);
  return {client,contract,read};
 }
@@ -102,9 +103,9 @@ export async function prepareExecution(app,actor,session,project,ctx,input,optio
 }
 export async function reconcile(app,ctx,txHash){
  const op=app.chainOperation;if(!op||op.status!=='prepared'||op.contract!==ctx.contract||!/^0x[a-fA-F0-9]{64}$/.test(txHash||''))throw fail('Choose the prepared transaction.');
- const receipt=await ctx.client.getTransactionReceipt({hash:txHash});if(receipt.status!=='success')throw fail('Transaction reverted. No credential change was recorded.');
- const finalized=await ctx.client.getBlock({blockTag:'finalized'});if(receipt.blockNumber>finalized.number)throw fail('Transaction is awaiting Ethereum finality. Check again shortly.');
- const block=await ctx.client.getBlock({blockNumber:receipt.blockNumber});if(block.hash!==receipt.blockHash)throw fail('Transaction block changed; retry later.');
+ const receipt=await chainRead('the transaction receipt',()=>ctx.client.getTransactionReceipt({hash:txHash}));if(receipt.status!=='success')throw fail('Transaction reverted. No credential change was recorded.');
+ const finalized=await chainRead('Ethereum finality',()=>ctx.client.getBlock({blockTag:'finalized'}));if(receipt.blockNumber>finalized.number)throw fail('Transaction is awaiting Ethereum finality. Check again shortly.');
+ const block=await chainRead('the transaction block',()=>ctx.client.getBlock({blockNumber:receipt.blockNumber}));if(block.hash!==receipt.blockHash)throw fail('Transaction block changed; retry later.');
  const events=receipt.logs.filter(l=>l.address.toLowerCase()===ctx.contract).flatMap(l=>{try{return [decodeEventLog({abi:credentialAbi,data:l.data,topics:l.topics})];}catch{return []}});
  if(op.kind!=='bootstrap'&&!events.some(e=>e.eventName==='AuthorizedAction'&&e.args.actor.toLowerCase()===op.actor&&e.args.actionHash===op.actionHash))throw fail('This receipt does not match the authorized operation.');
  const memo=app.memos.find(m=>m.version===op.memoVersion);
@@ -113,7 +114,9 @@ export async function reconcile(app,ctx,txHash){
   app.credential.standing=op.standing;app.credential.revision++;app.credential.history.push({action:'standing',actor:op.actor,standing:op.standing,reason:op.reason,transactionHash:txHash,at:new Date().toISOString()});
  }else{
   const event=events.find(e=>e.eventName==='MemorandumAccepted'&&e.args.memoHash==='0x'+memo.hash&&e.args.policyHash===hash(memo.policyVersion));if(!event||(op.kind==='bootstrap'&&String(event.args.tokenId)!=='1'))throw fail('Memorandum issuance was not confirmed.');
-  const id=event.args.tokenId,[record,owner]=await Promise.all([ctx.read('records',[id],receipt.blockNumber),ctx.read('ownerOf',[id],receipt.blockNumber)]);
+  // Verify the current finalized credential, not archived issuance state.
+  // A later amendment must still match the exact signed terms below.
+  const id=event.args.tokenId,[record,owner]=await Promise.all([ctx.read('records',[id],finalized.number),ctx.read('ownerOf',[id],finalized.number)]);
   const expected=op.args[op.kind==='replace'?2:1];
   if(owner.toLowerCase()!==app.wallet||record[0].subject!==expected.subject||record[0].memoHash!==expected.memoHash||record[0].policyHash!==expected.policyHash||Number(record[0].level)!==expected.level||Number(record[0].rank)!==expected.rank||Number(record[0].validFrom)!==expected.validFrom||Number(record[0].validUntil)!==expected.validUntil||Number(record[0].weightNumerator)!==expected.weightNumerator||Number(record[0].weightDenominator)!==expected.weightDenominator)throw fail('The credential does not match the signed terms.');
   for(const m of app.memos)if(m.status==='issued')m.status='superseded';memo.status='issued';

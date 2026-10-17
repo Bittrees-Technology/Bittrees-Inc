@@ -12,6 +12,7 @@ import {contributorAuth} from './auth.mjs';
 export function createContributorHandler(project,{env=process.env,command=redisCommand,actorFor=contributorActor,verifyWallet,send,baseReader=readBaseApplication}={}){
  const origin=`https://${project==='gov'?'gov':'research'}.bittrees.org`;
  return async(req,res)=>{
+ let failureStage='request';
  res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Content-Type-Options','nosniff');
  try{
   if(!['GET','POST'].includes(req.method))return res.status(405).json({error:'Method not allowed'});
@@ -31,6 +32,7 @@ export function createContributorHandler(project,{env=process.env,command=redisC
   if(body.action==='wallet_challenge')return res.status(200).json(await auth.walletChallenge(req,session,body.address));
   if(body.action==='wallet_verify')return res.status(200).json(await auth.walletVerify(req,session,body.signature));
   if(body.action==='gov_roles'&&project==='gov')return res.status(200).json(await govRoleRoster(session.wallet,{env}));
+  failureStage='role verification';
   const actor=await actorFor(session,project),store=contributorStore(command,codec,project),service=contributorService();
   if(body.action==='list'){
    const state=await store.read();
@@ -39,7 +41,8 @@ export function createContributorHandler(project,{env=process.env,command=redisC
    return res.status(200).json(service.view(state,actor,project));
   }
   if(['chain_consent_prepare','chain_consent_save','chain_execute_prepare','chain_reconcile','chain_expire_bootstrap'].includes(body.action)){
-   const ctx=await chainContext(env);let result;
+   failureStage='credential contract verification';
+   const ctx=await chainContext(env);let result;failureStage='record load';
    const next=await store.mutate(async state=>{
     const app=state.applications.find(a=>a.id===body.id&&a.project===(project==='gov'?'Bittrees Governance':'Bittrees Research'));
     if(!app||app.identity!==actor.id&&!actor.review.includes(app.lane))throw Object.assign(Error('Application access denied.'),{status:403});
@@ -49,7 +52,8 @@ export function createContributorHandler(project,{env=process.env,command=redisC
     if(body.action==='chain_consent_save')await acceptConsent(app,session,project,ctx,body);
     if(body.action==='chain_execute_prepare')result=await prepareExecution(app,actor,session,project,ctx,body,{env});
     if(body.action==='chain_expire_bootstrap')await expireBootstrap(app,actor,ctx);
-    if(body.action==='chain_reconcile')await reconcile(app,ctx,body.transactionHash);
+    if(body.action==='chain_reconcile'){failureStage='receipt verification';await reconcile(app,ctx,body.transactionHash);}
+    failureStage='record save';
     app.version++;state.revision++;
     const entry={id:randomUUID(),sequence:state.audit.length+1,at:new Date().toISOString(),actor:actor.id,applicationId:app.id,action:body.action,detail:{memoVersion:app.memos.at(-1)?.version,operationId:app.chainOperation?.id||null,transactionHash:body.transactionHash||null},policy:'contributor-policy-v1',previousHash:state.audit.at(-1)?.hash||null};
     entry.hash=createHash('sha256').update(JSON.stringify(entry)).digest('hex');state.audit.push(entry);return state;
@@ -88,6 +92,6 @@ export function createContributorHandler(project,{env=process.env,command=redisC
     return service.transition(s,actor,body.id,change,{expiredConsentVerified});});return res.status(200).json(service.view(next,actor,project));
   }
   return res.status(400).json({error:'Unknown contributor action.'});
- }catch(e){return res.status(e.status||503).json({error:e.status?e.message:'Contributor service unavailable. No success has been confirmed; reload records before retrying.'});}
+ }catch(e){return res.status(e.status||503).json({error:e.status?e.message:'Contributor service unavailable during '+failureStage+'. No success has been confirmed; reload records before retrying.'});}
  };
 }
