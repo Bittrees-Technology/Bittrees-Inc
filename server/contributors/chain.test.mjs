@@ -44,3 +44,10 @@ test('new issuance authorization has no expiry and still binds exact terms and n
  const signature=await account.signTypedData(typedData);await acceptConsent(a,session,'gov',ctx,{typedData,signature});
  ctx.read=async()=>1n;await assert.rejects(()=>acceptConsent(a,session,'gov',ctx,{typedData,signature}),/does not match/);
 });
+
+test('RPC failure identifies the failed receipt stage without exposing provider details',async()=>{
+ const a=app();a.chainOperation={kind:'bootstrap',status:'prepared',contract};
+ const ctx={contract,client:{getTransactionReceipt:async()=>{throw Error('provider.example/private-api-key');}}};
+ await assert.rejects(()=>reconcile(a,ctx,tx),e=>e.status===503&&e.message.includes('transaction receipt')&&!e.message.includes('private-api-key'));
+ assert.equal(a.credential,undefined);assert.equal(a.chainOperation.status,'prepared');
+});
