@@ -114,7 +114,9 @@ export async function reconcile(app,ctx,txHash){
   app.credential.standing=op.standing;app.credential.revision++;app.credential.history.push({action:'standing',actor:op.actor,standing:op.standing,reason:op.reason,transactionHash:txHash,at:new Date().toISOString()});
  }else{
   const event=events.find(e=>e.eventName==='MemorandumAccepted'&&e.args.memoHash==='0x'+memo.hash&&e.args.policyHash===hash(memo.policyVersion));if(!event||(op.kind==='bootstrap'&&String(event.args.tokenId)!=='1'))throw fail('Memorandum issuance was not confirmed.');
-  const id=event.args.tokenId,[record,owner]=await Promise.all([ctx.read('records',[id],receipt.blockNumber),ctx.read('ownerOf',[id],receipt.blockNumber)]);
+  // Verify the current finalized credential, not archived issuance state.
+  // A later amendment must still match the exact signed terms below.
+  const id=event.args.tokenId,[record,owner]=await Promise.all([ctx.read('records',[id],finalized.number),ctx.read('ownerOf',[id],finalized.number)]);
   const expected=op.args[op.kind==='replace'?2:1];
   if(owner.toLowerCase()!==app.wallet||record[0].subject!==expected.subject||record[0].memoHash!==expected.memoHash||record[0].policyHash!==expected.policyHash||Number(record[0].level)!==expected.level||Number(record[0].rank)!==expected.rank||Number(record[0].validFrom)!==expected.validFrom||Number(record[0].validUntil)!==expected.validUntil||Number(record[0].weightNumerator)!==expected.weightNumerator||Number(record[0].weightDenominator)!==expected.weightDenominator)throw fail('The credential does not match the signed terms.');
   for(const m of app.memos)if(m.status==='issued')m.status='superseded';memo.status='issued';

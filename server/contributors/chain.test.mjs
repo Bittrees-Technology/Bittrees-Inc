@@ -51,3 +51,13 @@ test('RPC failure identifies the failed receipt stage without exposing provider 
  await assert.rejects(()=>reconcile(a,ctx,tx),e=>e.status===503&&e.message.includes('transaction receipt')&&!e.message.includes('private-api-key'));
  assert.equal(a.credential,undefined);assert.equal(a.chainOperation.status,'prepared');
 });
+
+
+test('older issuance receipts use current finalized credential state, not archive reads',async()=>{
+ const a=app(),terms=termsFor(a,a.memos[0],'gov');
+ a.chainOperation={kind:'bootstrap',actor:wallet,contract,memoVersion:1,args:[wallet,terms],status:'prepared'};
+ const memoLog={address:contract,topics:encodeEventTopics({abi:credentialAbi,eventName:'MemorandumAccepted',args:{tokenId:1n}}),data:encodeAbiParameters([{type:'uint32'},{type:'bytes32'},{type:'bytes32'}],[1,terms.memoHash,terms.policyHash])};
+ let changed=false;const reads=[];const ctx={contract,client:{getTransactionReceipt:async()=>({status:'success',blockNumber:10n,blockHash,logs:[memoLog]}),getBlock:async q=>q.blockTag?{number:1000n}:{hash:blockHash}},read:async(name,args,at)=>{reads.push(at);assert.equal(at,1000n);return name==='ownerOf'?wallet:[{...terms,...(changed?{memoHash:'0x'+'f'.repeat(64)}:{})},0,1];}};
+ const modified=structuredClone(a);changed=true;await assert.rejects(()=>reconcile(modified,ctx,tx),/does not match/);assert.equal(modified.credential,undefined);
+ changed=false;await reconcile(a,ctx,tx);assert.equal(a.credential.tokenId,'1');assert.equal(a.memos[0].status,'issued');assert.ok(reads.every(b=>b===1000n));
+});
