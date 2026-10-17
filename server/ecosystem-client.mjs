@@ -1,3 +1,4 @@
+import {requireContributorRoleProof} from '../shared/contributor-role-policy.mjs';
 import {randomUUID,sign} from 'node:crypto';
 import {ECOSYSTEM_ENDPOINT,ecosystemSources,ecosystemRequestMessage,verifyEcosystemDecision,ecosystemSubject} from '../shared/ecosystem-authority.mjs';
 export {ecosystemSubject};
@@ -12,5 +13,5 @@ export async function ecosystemAccess(project,subjects,{env=process.env,fetcher=
  const signature=sign(null,Buffer.from(ecosystemRequestMessage(request)),env.ROLES_ECOSYSTEM_REQUEST_PRIVATE_KEY).toString('base64');
  const response=await fetcher(ECOSYSTEM_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({request,signature}),redirect:'error',cache:'no-store',signal:AbortSignal.timeout(12000)});
  if(!response.ok)throw Object.assign(Error('Shared Roles verification is unavailable'),{status:503});
- return verifyEcosystemDecision(await response.json(),request,env.ROLES_ECOSYSTEM_DECISION_PUBLIC_KEY);
+ return requireContributorRoleProof(verifyEcosystemDecision(await response.json(),request,env.ROLES_ECOSYSTEM_DECISION_PUBLIC_KEY),request);
 }

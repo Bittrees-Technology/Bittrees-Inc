@@ -13,6 +13,9 @@ test('Gov Roles reflects shared changes and fails closed without legacy editors'
  await expect(panel.getByRole('cell',{name:'Partner',exact:true})).toBeVisible();
  await expect(panel.getByText('Junior Partner',{exact:true})).toHaveCount(0);
  await expect(panel.getByRole('link',{name:'Manage Gov roles'})).toHaveAttribute('href','https://roles.bittrees.org/role-management?project=gov&view=all');
+ await panel.getByText('Administration and Superadmin eligibility',{exact:true}).click();
+ await expect(panel.getByText('Superadmin appointments require', {exact:false})).toContainText('Gov Partner, Junior Partner, Associate, Admin and operational roles also require a valid contributor credential at assignment and throughout their access.');
+ await expect(panel.getByText('bittrees.eth retains override', {exact:false})).toBeVisible();
  mode='none';await panel.getByRole('button',{name:'Refresh roles'}).click();
  await expect(panel.getByText('No Gov administration permissions',{exact:true})).toBeVisible();
  await expect(panel.getByRole('cell',{name:'Partner',exact:true})).toHaveCount(0);
