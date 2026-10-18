@@ -10,7 +10,7 @@ test('navigation avoids idle polling while protected controls refresh and deny e
  await page.route('**/api/contributors',r=>r.fulfill({json:{session:null,applications:[],persona:{}}}));
  await page.route('**/api/authority-access?*',r=>{
   reads++;if(mode==='failure')return r.fulfill({status:503,json:{error:'Test unavailable'}});
-  return r.fulfill({json:{configured:true,permissions:mode==='denied'?[]:['community.moderation.manage'],roles:[],expiresAt:Date.now()+(mode==='expired'?-1000:30000)}});
+  return r.fulfill({json:{configured:true,permissions:['denied','expired'].includes(mode)?[]:['community.moderation.manage'],roles:[],expiresAt:Date.now()+(mode==='expired'?-1000:30000)}});
  });
  await page.addInitScript(({wallet})=>{let connected=false;(window as any).ethereum={isMetaMask:true,on(){},removeListener(){},async request({method}:any){if(method==='eth_accounts')return connected?[wallet]:[];if(method==='eth_requestAccounts'){connected=true;return[wallet];}if(method==='eth_chainId')return '0x1';throw Error('Unexpected wallet operation');}};},{wallet});
  await page.goto('/');
