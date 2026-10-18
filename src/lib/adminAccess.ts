@@ -13,6 +13,14 @@ const MOD_ROLE_RE = /^(moderator|mod)$/i;
 
 export type AdminLevel = "full" | "moderation" | "none";
 
+/** Navigation hint only: never use this result to authorize data or controls.
+ * Keep the last verified link during refresh; an explicit denial removes it. */
+export function useAdminNavigation(address?: string): boolean {
+  const policy = useAuthorityAccess(address, 'navigation');
+  return !!address && policy.data?.configured === true &&
+    policy.data.permissions.some(p => ['community.roles.manage', 'rooms.manage', 'community.moderation.manage'].includes(p));
+}
+
 export function useAdminAccess(address?: string): AdminLevel {
   const isSpaceAdmin = useIsAdmin(address);
   const roles = useUserRoles(address);

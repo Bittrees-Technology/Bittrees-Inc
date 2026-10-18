@@ -4,7 +4,7 @@ import GovAccount from "./components/GovAccount";
 import { useState, useEffect } from "react";
 import { watchPushSession } from "./lib/pushRuntime";
 import { useAccount } from "wagmi";
-import { useAdminAccess } from "./lib/adminAccess";
+import { useAdminNavigation } from "./lib/adminAccess";
 import Overview from "./pages/Overview";
 import Proposals from "./pages/Proposals";
 import ProposalDetail from "./pages/ProposalDetail";
@@ -79,10 +79,10 @@ export default function App() {
 function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { address } = useAccount();
-  const adminLevel = useAdminAccess(address);
+  const showAdmin = useAdminNavigation(address);
   // Admin tab — appended to the right of BGOV, shown to anyone with admin access
   // (full admins or moderators); the Admin page itself shows only their allowed tabs.
-  const nav = adminLevel !== "none" ? [...NAV, { to: ROUTES.admin, label: "Admin", end: false }] : NAV;
+  const nav = showAdmin ? [...NAV, { to: ROUTES.admin, label: "Admin", end: false }] : NAV;
 
   return (
     <header

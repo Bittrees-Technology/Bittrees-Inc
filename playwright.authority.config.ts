@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'tests/contributors',testMatch:'admin-navigation.spec.ts',workers:1,use:{baseURL:'http://127.0.0.1:4364'},webServer:{command:'VITE_WALLETCONNECT_PROJECT_ID=11111111111111111111111111111111 ./node_modules/.bin/vite --host 127.0.0.1 --port 4364 --strictPort',url:'http://127.0.0.1:4364',reuseExistingServer:false},outputDir:'test-results/authority'});
