@@ -17,7 +17,14 @@ export function useAuthorityAccess(address?:string, purpose:'access'|'navigation
     queryFn:async({signal})=>{
       const r=await fetch('/api/authority-access?address='+address,{signal});
       if(!r.ok)throw Error('Controller authority unavailable');
-      return r.json() as Promise<AuthorityAccess>;
+      const data = await r.json() as AuthorityAccess;
+      // Expired evidence is unavailable, not a new denial. Retain the last
+      // navigation hint; protected readers reject the query error. Preserve
+      // Gov's explicit pre-enrollment response, which has no expiry field.
+      if (data.expiresAt !== undefined && (!Number.isFinite(data.expiresAt) || data.expiresAt <= Date.now())) {
+        throw Error('Controller authority expired. Refresh to check access.');
+      }
+      return data;
     },
   });
 }
