@@ -22,7 +22,7 @@ import {
 import { addContact } from "../lib/contacts";
 import { ensAvailable, ensYearPriceWei, ensLabel, ensAppUrl, ETH_REGISTRAR_CONTROLLER, REGISTRAR_WRITE_ABI, PUBLIC_RESOLVER, REGISTRATION_DURATION, ensRegisterData, ensMinCommitmentAge } from "../lib/ens";
 import { useSavedMessages, addSavedMessage, deleteSavedMessage } from "../lib/savedMessages";
-import { useUserSync, isSyncEnabled, enableSync, disableSync } from "../lib/userSync";
+import { useUserSync, isSyncEnabled, hasLegacySyncCredential, enableSync, disableSync } from "../lib/userSync";
 import { useVotingPowerNow } from "../lib/snapshot";
 import {
   BGOV_ROOMS,
@@ -525,6 +525,7 @@ function SyncSection({ owner }: { owner?: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string>();
   const enabled = isSyncEnabled(owner);
+  const legacy = hasLegacySyncCredential(owner);
 
   async function turnOn() {
     if (!walletClient || !owner) return;
@@ -547,8 +548,8 @@ function SyncSection({ owner }: { owner?: string }) {
           <span style={{ display: "block", fontFamily: "var(--font-sans)", fontSize: "0.9rem", fontWeight: 600, color: "var(--color-ink)" }}>Sync across devices</span>
           <span style={{ display: "block", fontFamily: "var(--font-sans)", fontSize: "0.78rem", color: "var(--color-ink-muted)", lineHeight: 1.5 }}>
             {enabled
-              ? "On — your Saved Messages and preferences are encrypted to this wallet and synced. The same wallet on another device sees them after you enable sync there."
-              : "Off — stored only on this device. Turn on to encrypt them to your wallet and sync across devices (one signature, no gas)."}
+              ? "On for this tab — encrypted messages and preferences sync for up to one hour. Reconnect after refreshing; the encryption key is not saved in browser storage."
+              : "Off — local messages are preserved. Connect with your wallet to unlock encrypted sync and approve a separate one-hour connection. No gas or app-role changes."}
           </span>
         </span>
         {!owner ? (
@@ -560,6 +561,7 @@ function SyncSection({ owner }: { owner?: string }) {
         )}
       </div>
       {enabled && <p style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", margin: "0.4rem 0 0", fontSize: "0.72rem" }}><strong style={{ color: "var(--color-secondary)" }}>✓ Syncing</strong> <span style={dim}>· encrypted to your wallet</span></p>}
+      {legacy && !enabled && <p role="status" style={{ ...dim, fontSize: "0.72rem" }}>An older sync credential is saved on this device. Reconnect the original wallet to verify message recovery and remove that credential safely.</p>}
       {err && <p role="alert" style={{ ...dim, color: "var(--color-ink)", fontSize: "0.72rem", margin: "0.35rem 0 0" }}>{err}</p>}
     </div>
   );
@@ -1460,7 +1462,7 @@ function ManageMembers({ push, chatId, me, roomKey, icon, walletClient }: { push
               ))}
             </div>
           )}
-          {err && <p role="alert" style={{ ...dim, color: "var(--color-ink)", margin: 0 }}>{err}</p>}
+      {err && <p role="alert" style={{ ...dim, color: "var(--color-ink)", margin: 0 }}>{err}</p>}
         </div>
       )}
     </div>

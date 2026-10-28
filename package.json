@@ -56,7 +56,7 @@
     "@vitejs/plugin-react": "4.5.0",
     "tailwindcss": "4.1.8",
     "typescript": "5.8.3",
-    "vite": "6.4.3"
+    "vite": "6.4.5"
   },
   "overrides": {
     "@pushprotocol/restapi": {
@@ -69,7 +69,6 @@
     "browserslist@>=4.0.0 <4.28.7": "4.28.7",
     "baseline-browser-mapping@>=2.0.0 <2.11.0": "2.11.0",
     "socket.io-parser@>=4.0.0 <4.2.7": "4.2.7",
-    "qs@>=6.0.0 <6.16.0": "6.16.0",
     "@wagmi/connectors": {
       "@metamask/sdk": {
         ".": "0.33.1",
@@ -85,6 +84,9 @@
     "query-string": {
       "decode-uri-component": "0.5.0"
     },
-    "joi@>=17.0.0 <17.13.8": "17.13.8"
+    "joi@>=17.0.0 <17.13.8": "17.13.8",
+    "qs@>=6.0.0 <6.17.0": "6.17.0",
+    "follow-redirects@<1.16.1": "1.16.1",
+    "zod@<4.6.6": "4.6.7"
   }
 }

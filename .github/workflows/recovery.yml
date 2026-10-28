@@ -20,10 +20,12 @@ jobs:
       - run: npm run test:dependency-audit
       - run: npm run test:uri-compatibility
       - run: npm run test:uuid-compatibility
+      - run: node --test scripts/wallet-schema-compatibility.test.mjs
       - run: npm run test:forum-subscriptions
       - run: npm run test:unit
       - run: npm run test:release-gate
       - run: node --test scripts/contributor-role-policy.test.mjs scripts/gov-permissions.test.mjs scripts/signed-registry.test.mjs scripts/redis-atomic.test.mjs scripts/roles-feed.test.mjs
+      - run: node --test scripts/usersync-session.test.mjs
       - run: npm run build
       - run: npm run test:seo
       - run: node --test scripts/ens-profile.test.mjs
