@@ -67,3 +67,13 @@ test('failed older intakes do not starve newer submissions and invalid form data
  checked=[];await settleIntakes(state,reviewer,'gov',{vault,service,now:63000,read:async(_p,_s,input)=>{checked.push(input.uid);throw Error('Unavailable');}});assert.equal(checked[0],'0x'+'4'.repeat(64));
  await assert.rejects(()=>stageIntake(emptyState(),session,'gov',input,{vault,read:async()=>({...verified,application:{...application,specialty:''}})}),/contribution interests/);
 });
+
+test('a second source for an existing active applicant is rejected before another key is retained',async()=>{
+ const vault=memoryVault();
+ const state=service.importBase(emptyState(),owner,'gov',verified);
+ const another={...verified,source:{...source,uid:'0x'+'9'.repeat(64)}};
+ await assert.rejects(()=>stageIntake(state,session,'gov',{uid:another.source.uid,contentKey:key},{vault,read:async()=>another}),/already have an application/);
+ assert.equal(vault.values.size,0);assert.equal(state.applications.length,1);
+ state.applications[0].state='rejected';
+ const next=await stageIntake(state,session,'gov',{uid:another.source.uid,contentKey:key},{vault,read:async()=>another});assert.equal(next.pendingIntakes.length,1);
+});
