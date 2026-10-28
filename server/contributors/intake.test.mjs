@@ -77,3 +77,10 @@ test('a second source for an existing active applicant is rejected before anothe
  state.applications[0].state='rejected';
  const next=await stageIntake(state,session,'gov',{uid:another.source.uid,contentKey:key},{vault,read:async()=>another});assert.equal(next.pendingIntakes.length,1);
 });
+
+test('historical unverified payout-wallet declarations cannot block the actual submitting wallet',async()=>{
+ const vault=memoryVault(),state=service.importBase(emptyState(),owner,'gov',verified);
+ state.applications[0].walletVerification='unverified';state.applications[0].identity='email:historical';
+ const another={...verified,source:{...source,uid:'0x'+'9'.repeat(64)}};
+ const next=await stageIntake(state,session,'gov',{uid:another.source.uid,contentKey:key},{vault,read:async()=>another});assert.equal(next.pendingIntakes.length,1);assert.equal(next.applications.length,1);
+});

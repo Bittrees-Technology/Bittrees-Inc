@@ -85,7 +85,7 @@ export default function Contribute() {
       }
       if(!session?.csrf)throw Error('Verify your wallet before submitting.');
       const existing=await contributorRequest({action:'list'},session.csrf);
-      if(existing.applications?.some((a:any)=>a.wallet?.toLowerCase()===address.toLowerCase()&&a.state!=='rejected')||existing.intakes?.some((i:any)=>i.wallet===address.toLowerCase()))throw Error('You already have an application for this project. Open My contribution above to continue; no new Base transaction is needed.');
+      if(existing.applications?.some((a:any)=>a.walletVerification==='verified'&&a.wallet?.toLowerCase()===address.toLowerCase()&&a.state!=='rejected')||existing.intakes?.some((i:any)=>i.wallet===address.toLowerCase()&&i.status==='waiting_finality'))throw Error('You already have an application for this project. Open My contribution above to continue; no new Base transaction is needed.');
       if(currentWallet.current?.toLowerCase()!==address.toLowerCase())throw Error('Your wallet changed. Review the application before submitting.');
       // Switch to Base only now (at submit), then use a fresh client for that chain.
       let wc = walletClient;
