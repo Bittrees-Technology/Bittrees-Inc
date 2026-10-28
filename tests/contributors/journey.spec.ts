@@ -40,5 +40,5 @@ test('an intake refresh denied by the server removes private applicant data',asy
  await page.clock.install();let deny=false;
  await page.route('https://insights.bittrees.org/consent.js',r=>r.abort());await page.route('**/graphql',r=>r.fulfill({json:{data:{attestations:[]}}}));
  await page.route('**/api/contributors',r=>{if(r.request().method()==='GET')return r.fulfill({json:{session:{wallet,csrf:'test'}}});return r.fulfill(deny?{status:403,json:{error:'Access unavailable'}}:{json:{today:'2026-10-28',applications:[application()],intakes:[{uid:'0x'+'4'.repeat(64),wallet,status:'waiting_finality'}],persona:{id:'owner',canReview:false}}});});
- await page.goto('/admin/contributors');await expect(page.getByRole('heading',{name:'Example contributor',exact:true})).toBeVisible();deny=true;await page.clock.fastForward(61000);await expect(page.getByRole('alert')).toContainText('Access unavailable');await expect(page.getByRole('heading',{name:'Example contributor',exact:true})).toHaveCount(0);
+ await page.goto('/admin/contributors');await expect(page.getByRole('heading',{name:'Example contributor',exact:true})).toBeVisible();deny=true;await page.clock.fastForward(61000);await expect(page.locator('.cp-error')).toContainText('Access unavailable');await expect(page.getByRole('heading',{name:'Example contributor',exact:true})).toHaveCount(0);
 });
