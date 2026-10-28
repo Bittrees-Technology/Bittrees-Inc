@@ -24,7 +24,7 @@ export default function Contributors({apply=false,embedded=false}:{apply?:boolea
  const [transactionHash,setTransactionHash]=useState('');
  const [memoFilter,setMemoFilter]=useState('action');
  const tab=data?.persona?.canReview?workspaceTab:'My contribution';
- useEffect(()=>{if(!data?.intakes?.some((i:any)=>i.status==='waiting_finality')||!session?.csrf)return;let active=true;const generation=loadGeneration.current;const timer=setInterval(()=>{call({action:'list'}).then(result=>{if(active&&generation===loadGeneration.current)setData(result);}).catch(e=>{if(active&&generation===loadGeneration.current){setData(null);setError(e.message);}});},60000);return()=>{active=false;clearInterval(timer);};},[data?.intakes,session?.csrf]);
+ useEffect(()=>{if(!data?.intakes?.some((i:any)=>i.status==='waiting_finality')||!session?.csrf)return;let active=true;const generation=loadGeneration.current;const timer=setInterval(()=>{if(document.visibilityState!=='visible')return;call({action:'list'}).then(result=>{if(active&&generation===loadGeneration.current)setData(result);}).catch(e=>{if(active&&generation===loadGeneration.current){setData(null);setError(e.message);}});},60000);return()=>{active=false;clearInterval(timer);};},[data?.intakes,session?.csrf]);
  const hadWallet=useRef(false);if(address)hadWallet.current=true;
  async function call(body:any,csrf=session?.csrf){const r=await fetch('/api/contributors',{method:'POST',headers:{'content-type':'application/json',...(csrf?{'x-contributor-csrf':csrf}:{})},body:JSON.stringify(body)});const result=await r.json();if(!r.ok)throw Error(result.error||'Request failed.');return result;}
  async function refresh(){const result=await auth.refetch();if(result.error)throw result.error;const s=result.data;return s;}

@@ -15,7 +15,7 @@ test('applicant has one journey with reviewer replies, edits, signing and issued
  app.state='approved';app.memos=[{version:1,status:'draft',scope:app.specialty,level:'Part Time',rank:'Contributor',wallet,start:'2026-10-28',end:null}];await page.reload();await expect(page.getByRole('button',{name:'Sign memorandum with wallet',exact:true})).toHaveCount(1);await expect(page.getByText('Propose changes to this memorandum',{exact:true})).toHaveCount(1);
  await page.screenshot({path:'artifacts/guided-contributor-desktop.png',fullPage:true});
  app.memos[0].consent={};await page.reload();await expect(page.getByRole('button',{name:'Sign memorandum with wallet',exact:true})).toHaveCount(0);await expect(page.getByText('Propose changes to this memorandum',{exact:true})).toHaveCount(0);await expect(page.getByText('Already signed.',{exact:false})).toBeVisible();
- app.memos[0].status='issued';app.credential={tokenId:'1',standing:'active',termActive:true,transactionHash:'0x'+'2'.repeat(64)};app.validations=[{id:'month1',month:'2026-10',evidence:'Published documentation',validatedBy:'Partner'}];await page.reload();await expect(page.getByRole('heading',{name:'Active credential',exact:true})).toBeVisible();await page.getByText('Confirmed monthly contributions',{exact:true}).click();await expect(page.getByText('Published documentation',{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'View role profile',exact:true})).toHaveAttribute('href','https://roles.bittrees.org');
+ app.memos[0].status='issued';app.credential={tokenId:'1',standing:'active',termActive:true,transactionHash:'0x'+'2'.repeat(64)};app.validations=[{id:'month1',month:'2026-10',evidence:'Published documentation',validatedBy:'Partner'}];await page.reload();await expect(page.getByRole('heading',{name:'Active credential',exact:true})).toBeVisible();await page.getByText('Confirmed monthly contributions',{exact:true}).click();await expect(page.getByText('Published documentation',{exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'View role profile',exact:true})).toHaveAttribute('href','https://roles.bittrees.org/profile');
  await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'artifacts/guided-contributor-mobile.png',fullPage:true});
 });
 test('reviewer opens application beside the sheet and proceeds directly to prefilled memorandum after acceptance',async({page})=>{
@@ -41,4 +41,12 @@ test('an intake refresh denied by the server removes private applicant data',asy
  await page.route('https://insights.bittrees.org/consent.js',r=>r.abort());await page.route('**/graphql',r=>r.fulfill({json:{data:{attestations:[]}}}));
  await page.route('**/api/contributors',r=>{if(r.request().method()==='GET')return r.fulfill({json:{session:{wallet,csrf:'test'}}});return r.fulfill(deny?{status:403,json:{error:'Access unavailable'}}:{json:{today:'2026-10-28',applications:[application()],intakes:[{uid:'0x'+'4'.repeat(64),wallet,status:'waiting_finality'}],persona:{id:'owner',canReview:false}}});});
  await page.goto('/admin/contributors');await expect(page.getByRole('heading',{name:'Example contributor',exact:true})).toBeVisible();deny=true;await page.clock.fastForward(61000);await expect(page.locator('.cp-error')).toContainText('Access unavailable');await expect(page.getByRole('heading',{name:'Example contributor',exact:true})).toHaveCount(0);
+});
+
+test('pending intake checks pause in hidden tabs and resume when visible',async({page})=>{
+ await page.clock.install();let lists=0;
+ await mock(page,()=>({applications:[application()],intakes:[{uid:'0x'+'4'.repeat(64),wallet,status:'waiting_finality'}],persona:{id:'owner',canReview:false}}),b=>{if(b.action==='list')lists++;});
+ await page.goto('/admin/contributors');await expect(page.getByRole('heading',{name:'Example contributor',exact:true})).toBeVisible();expect(lists).toBe(1);
+ await page.evaluate(()=>Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'}));await page.clock.fastForward(61000);expect(lists).toBe(1);
+ await page.evaluate(()=>Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'visible'}));await page.clock.fastForward(61000);await expect.poll(()=>lists).toBe(2);
 });
