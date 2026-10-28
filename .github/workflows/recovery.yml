@@ -20,6 +20,7 @@ jobs:
       - run: npm run test:dependency-audit
       - run: npm run test:uri-compatibility
       - run: npm run test:uuid-compatibility
+      - run: node --test scripts/wallet-schema-compatibility.test.mjs
       - run: npm run test:forum-subscriptions
       - run: npm run test:unit
       - run: npm run test:release-gate
