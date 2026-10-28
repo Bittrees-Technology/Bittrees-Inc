@@ -13,6 +13,6 @@ test('an existing verified applicant is directed to their record before requesti
   return r.fulfill({json:{applications:[{wallet,walletVerification:'verified',state:'approved'}],intakes:[]}});
  });
  await page.goto('/contributors/apply');await page.getByRole('button',{name:'Connect Wallet',exact:true}).first().click();await page.getByRole('button',{name:/^MetaMask(?:\s|$)/}).click();
- await page.getByRole('textbox',{name:/Name or handle/}).fill('Existing applicant');await page.getByRole('button',{name:'Business',exact:true}).click();await page.getByRole('textbox',{name:/What would you like to contribute/}).fill('Continue documentation.');await page.getByRole('button',{name:'EMEA',exact:true}).click();await page.getByRole('textbox',{name:/How did you learn/}).fill('Website');
+ await page.getByRole('textbox',{name:/Name or handle/}).fill('Existing applicant');await page.getByRole('button').filter({hasText:/^Business$/}).click();await page.getByRole('textbox',{name:/What would you like to contribute/}).fill('Continue documentation.');await page.getByRole('button').filter({hasText:/^EMEA$/}).click();await page.getByRole('textbox',{name:/How did you learn/}).fill('Website');
  await page.getByRole('button',{name:'Submit application',exact:true}).click();await expect(page.locator('.contributor-application [role=alert]')).toContainText('You already have an application');expect(checked).toBe(1);expect(await page.evaluate(()=>(window as any).__signatureRequests)).toBe(0);expect(await page.evaluate(()=>(window as any).__transactionRequests)).toBe(0);
 });
