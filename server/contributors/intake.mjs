@@ -1,3 +1,4 @@
+import {normalizeInterest} from './interest.mjs';
 // Per-application keys are retained only inside the existing encrypted private
 // store with an enforced Redis TTL until finalized import. Wallet-derived keys/signatures never enter it.
 const ttl=24*60*60*1000;
@@ -16,6 +17,7 @@ export async function stageIntake(state,session,project,input,{read,vault,now=Da
  if(!wallet||!session.walletVerifiedAt)throw fail('Verify the submitting wallet.',403);
  const verified=await read(project,session,input,undefined,{finality:'latest'});
  if(verified.source.attester.toLowerCase()!==wallet)throw fail('Use the submitting wallet.',403);
+ normalizeInterest(verified.application,project,{wallet});
  if(state.applications.some(a=>a.sourceAttestation?.uid===verified.source.uid))return state;
  const pending=state.pendingIntakes||[];
  const existing=pending.find(p=>p.uid===verified.source.uid);
@@ -31,7 +33,9 @@ export function intakeView(state,actor,project){
 }
 export async function settleIntakes(state,actor,project,{read,service,vault,now=Date.now()}={}){
  let next=structuredClone(state),checked=0;
- for(const p of next.pendingIntakes||[]){
+ const candidates=[...(next.pendingIntakes||[])].sort((a,b)=>a.nextCheckAt-b.nextCheckAt);
+ for(const candidate of candidates){
+  const p=next.pendingIntakes.find(i=>i.uid===candidate.uid);if(!p)continue;
   if(p.project!==project)continue;
   if(p.expiresAt<=now){p.status='unlock_needed';continue;}
   if(p.status!=='waiting_finality'||p.nextCheckAt>now||checked>=3||!(p.identity===actor.id||actor.review.includes(lane(project))))continue;

@@ -65,9 +65,9 @@ export default function Contribute() {
   const [txHash, setTxHash] = useState<Hash>();
 
   const canSubmit =
-    name.trim().length > 0 &&
+    name.trim().length > 0 && name.trim().length <= 120 &&
     expertise.length > 0 &&
-    specialty.trim().length > 0 &&
+    specialty.trim().length > 0 && specialty.trim().length <= 2000 && languages.length <= 20 &&
     region.length > 0 &&
     heardFrom.trim().length > 0;
 
@@ -178,7 +178,7 @@ export default function Contribute() {
           </Field>
 
           <Field label="What would you like to contribute?" required>
-            <textarea value={specialty} onChange={(e) => setSpecialty(e.target.value)} rows={5} placeholder="A few sentences on your specialty and what you'd contribute." style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
+            <textarea maxLength={2000} value={specialty} onChange={(e) => setSpecialty(e.target.value)} rows={5} placeholder="A few sentences on your specialty and what you'd contribute." style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }} />
           </Field>
 
           <h3>Your background</h3><Field label="Regions" required>

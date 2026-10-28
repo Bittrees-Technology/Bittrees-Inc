@@ -54,3 +54,16 @@ test('expired intake discards its key and requests an unlock; ownership mismatch
  assert.equal(expired.pendingIntakes[0].status,'unlock_needed');assert.ok(!JSON.stringify(expired).includes(key));
  await assert.rejects(()=>stageIntake(emptyState(),session,'gov',input,{vault,read:async()=>({...verified,source:{...source,attester:'0x'+'5'.repeat(40)}})}),/submitting wallet/);
 });
+
+test('failed older intakes do not starve newer submissions and invalid form data never stages a key',async()=>{
+ const vault=memoryVault(),reviewer={...owner,id:'reviewer',review:['inc-ops-governance']};
+ let state=emptyState();
+ for(let i=0;i<4;i++){
+  const w='0x'+String(i+1).repeat(40),u='0x'+String(i+1).repeat(64),s={identity:'wallet:'+i,wallet:w,walletVerifiedAt:1000};
+  state=await stageIntake(state,s,'gov',{uid:u,contentKey:key},{vault,now:1000+i,read:async()=>({application:{...application,wallet:w},source:{...source,uid:u,attester:w}})});
+ }
+ let checked=[];
+ state=await settleIntakes(state,reviewer,'gov',{vault,service,now:2000,read:async(_p,_s,input)=>{checked.push(input.uid);throw Error('Unavailable');}});assert.equal(checked.length,3);
+ checked=[];await settleIntakes(state,reviewer,'gov',{vault,service,now:63000,read:async(_p,_s,input)=>{checked.push(input.uid);throw Error('Unavailable');}});assert.equal(checked[0],'0x'+'4'.repeat(64));
+ await assert.rejects(()=>stageIntake(emptyState(),session,'gov',input,{vault,read:async()=>({...verified,application:{...application,specialty:''}})}),/contribution interests/);
+});
