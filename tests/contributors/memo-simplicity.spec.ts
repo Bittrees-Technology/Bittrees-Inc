@@ -5,7 +5,7 @@ for(const stage of ['unsigned','signed','pending','issued'])test(`memo ${stage} 
  await page.route('https://insights.bittrees.org/consent.js',r=>r.abort());
  await page.route('**/api/contributors',r=>r.fulfill({json:r.request().method()==='GET'?{session:{wallet,csrf:'test'}}:{today:'2026-10-17',applications:[app],persona:{id:'owner',canReview:true,canIssue:true,canChangeStatus:true}}}));
  await page.route('**/graphql',r=>r.fulfill({json:{data:{attestations:[]}}}));
- await page.goto('/admin/contributors');await page.getByRole('button',{name:'Memoranda & issuance',exact:true}).click();await page.getByRole('button',{name:'Open Example contributor',exact:true}).click();
+ await page.goto('/admin/contributors');await page.getByRole('button',{name:'Memoranda & issuance',exact:true}).click();await page.getByLabel('Show memoranda').selectOption('all');await page.getByRole('button',{name:'Open Example contributor',exact:true}).click();
  const queue=page.getByRole('region',{name:'Memorandum queue'});await expect(queue).toHaveCount(0);await expect(page.getByRole('list',{name:'Memorandum progress'})).toBeVisible();await expect(page.getByRole('button',{name:'← All memoranda'})).toBeVisible();
  await expect(page.getByRole('button',{name:'Renew memorandum signature',exact:true})).not.toBeVisible();
  await expect(page.getByRole('combobox',{name:'New standing',exact:true})).not.toBeVisible();
@@ -27,7 +27,7 @@ test('memo refreshes do not duplicate the change request form',async({page})=>{
   if(r.request().postDataJSON().action==='review')version++;
   return r.fulfill({json:{today:'2026-10-17',persona:{id:'owner',canReview:true,canIssue:true},applications:[{id:'memo',identity:'owner',name:'Example',project:'Gov',state:'approved',version,wallet,walletVerification:'verified',memos:[memo()],memoEdits:[],reviews:[],proposals:[],validations:[]}]}});
  });
- await page.goto('/admin/contributors');await page.getByRole('button',{name:'Memoranda & issuance',exact:true}).click();await page.getByRole('button',{name:'Open Example',exact:true}).click();
+ await page.goto('/admin/contributors');await page.getByRole('button',{name:'Memoranda & issuance',exact:true}).click();await page.getByLabel('Show memoranda').selectOption('all');await page.getByRole('button',{name:'Open Example',exact:true}).click();
  for(let i=0;i<4;i++){
   await expect(page.getByText('Propose changes to this memorandum',{exact:true})).toHaveCount(1);
   await page.getByText('Manage memorandum & history',{exact:true}).click();

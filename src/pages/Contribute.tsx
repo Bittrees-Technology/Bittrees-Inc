@@ -1,13 +1,14 @@
+import {useContributorSession,contributorRequest} from '../lib/contributorSession';
 import './contributor-application.css';
 import { Link } from "react-router";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAccount, useChainId, useSwitchChain, useWalletClient } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { base, wagmiConfig } from "../lib/chains";
 import { getWalletClient } from "@wagmi/core";
 import { publishPost, CONTRIB_COMMUNITY, useSchemaRegistered } from "../lib/forum";
 import { fetchCommunity, currentReviewers } from "../lib/community";
-import { deriveEncKeypair, encryptApplication, pubKeyFromHex, type Application } from "../lib/appcrypto";
+import { deriveEncKeypair, encryptApplication, applicationContentKey, pubKeyFromHex, type Application } from "../lib/appcrypto";
 import { ChipMultiSelect, SearchMultiSelect } from "../components/multiselect";
 import type { Hash } from "viem";
 
@@ -34,6 +35,16 @@ function humanError(e: unknown): string {
 
 export default function Contribute() {
   const { address, isConnected } = useAccount();
+  const auth=useContributorSession();
+  const currentWallet=useRef(address);currentWallet.current=address;
+  const pending=useRef<{uid:string;contentKey:string;wallet:string}|null>(null);
+  const [intakeStatus,setIntakeStatus]=useState('');
+  useEffect(()=>{pending.current=null;setIntakeStatus('');setStatus('idle');setTxHash(undefined);return()=>{pending.current=null;};},[address]);
+  async function saveIntake(csrf?:string){
+    const intake=pending.current;if(!intake||currentWallet.current?.toLowerCase()!==intake.wallet) return;
+    await contributorRequest({action:'stage_base',uid:intake.uid,contentKey:intake.contentKey},csrf);
+    pending.current=null;setIntakeStatus('Your application will enter review automatically after Base finality. You can follow its progress on My contribution.');
+  }
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
   const { data: walletClient } = useWalletClient();
@@ -65,6 +76,15 @@ export default function Contribute() {
     setStatus("posting");
     setError(undefined);
     try {
+      let session=auth.session;
+      if(session?.wallet?.toLowerCase()!==address.toLowerCase()){
+        const challenge=await contributorRequest({action:'wallet_login_start',address});
+        const signature=await walletClient.signMessage({account:address,message:challenge.message});
+        await contributorRequest({action:'wallet_login_finish',challenge:challenge.challenge,signature});
+        session=(await auth.refetch()).data?.session;
+      }
+      if(!session?.csrf)throw Error('Verify your wallet before submitting.');
+      if(currentWallet.current?.toLowerCase()!==address.toLowerCase())throw Error('Your wallet changed. Review the application before submitting.');
       // Switch to Base only now (at submit), then use a fresh client for that chain.
       let wc = walletClient;
       if (chainId !== base.id) {
@@ -85,23 +105,29 @@ export default function Contribute() {
         referrer: referrer.trim(),
       };
       // Derive my key (also a recipient) and gather the reviewers' published keys.
-      const keypair = await deriveEncKeypair(wc, address);const publicKey=keypair.publicKey;keypair.secretKey.fill(0);
       const community = await fetchCommunity();
       const reviewers = currentReviewers(community)
         .map((a) => ({ addr: a, hex: community.enckeys[a] }))
         .filter((r) => /^[0-9a-f]{64}$/.test(r.hex || ""))
         .map((r) => ({ addr: r.addr, pub: pubKeyFromHex(r.hex) }));
-      const recipients = [{ addr: address.toLowerCase(), pub: publicKey }, ...reviewers];
-      const envelope = encryptApplication(JSON.stringify(app), recipients);
+      const keypair=await deriveEncKeypair(wc,address);
+      let envelope,contentKey:string;
+      try{
+        envelope=encryptApplication(JSON.stringify(app),[{addr:address.toLowerCase(),pub:keypair.publicKey},...reviewers]);
+        contentKey=applicationContentKey(envelope,address,keypair.secretKey);
+      }finally{keypair.secretKey.fill(0);}
+      if(currentWallet.current?.toLowerCase()!==address.toLowerCase())throw Error('Your wallet changed. Submit again with the intended wallet.');
       const hash = await publishPost({
         walletClient: wc,
         account: address,
         title: "Contributor application",
         body: JSON.stringify(envelope),
         community: CONTRIB_COMMUNITY,
+        onAttested:uid=>{if(currentWallet.current?.toLowerCase()===address.toLowerCase())pending.current={uid,contentKey,wallet:address.toLowerCase()};},
       });
       setTxHash(hash);
       setStatus("done");
+      try{await saveIntake(session.csrf);}catch{setIntakeStatus('Your Base submission succeeded. Finish private intake below, or unlock the existing submission from My contribution. Do not submit another application.');}
     } catch (e) {
       setStatus("error");
       setError(humanError(e));
@@ -111,11 +137,11 @@ export default function Contribute() {
   return (
     <div className="contributor-application" style={{display:"flex",flexDirection:"column",gap:"1.5rem"}}>
       <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
-        <p><Link to="/admin/contributors">View my application and memorandum</Link></p>
+        <p><Link to="/admin/contributors">My contribution</Link></p>
         <p className="text-label">Bittrees, Inc.</p>
         <h1 className="text-display">Become a contributor</h1>
         <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: "0.5rem" }}>
-          Tell us what you would like to contribute. Submit with your wallet on Base; your answers are encrypted for you and the designated reviewers.
+          Tell us what you would like to contribute. Submit with your wallet on Base, then follow review, your memorandum and credential from My contribution.
         </p>
       </header>
 
@@ -127,7 +153,9 @@ export default function Contribute() {
           <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.85rem", color: "var(--color-ink-muted)", margin: 0 }}>
             Encrypted and recorded on-chain. Only you and the Bittrees reviewers can decrypt it.
           </p>
-          <Link to="/admin/contributors">Continue to application review and memorandum</Link>
+          <p role="status">{intakeStatus||'Your application is recorded on Base. Open My contribution to continue from this submission.'}</p>
+          {pending.current&&<button className="btn-primary" onClick={async()=>{try{await saveIntake(auth.session?.csrf);}catch{setIntakeStatus('Private intake could not be saved. Open My contribution and unlock your existing submission; no new transaction is needed.');}}}>Finish private intake</button>}
+          <Link to="/admin/contributors">View My contribution</Link>
           {txHash && (
             <a href={`https://basescan.org/tx/${txHash}`} target="_blank" rel="noreferrer" style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--color-ink-muted)", textDecoration: "none" }}>
               View on BaseScan ↗
@@ -181,7 +209,7 @@ export default function Contribute() {
 
           <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.72rem", color: "var(--color-ink-dim)", lineHeight: 1.55, margin: 0 }}>
             Submitting signs once to derive your encryption key (no gas), then records the encrypted
-            application on Base. Fields marked <span style={{ color: "var(--color-primary-hover)" }}>*</span> are required.
+            application on Base. A per-application key is held in the encrypted private workspace until finalized intake; your wallet decryption key is never saved. Fields marked <span style={{ color: "var(--color-primary-hover)" }}>*</span> are required.
           </p>
 
           <div>

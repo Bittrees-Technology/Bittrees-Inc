@@ -9,7 +9,7 @@ test('same-wallet refresh preserves open forms and input; denied refresh removes
   lists++;if(lists>1)await new Promise(resolve=>{release=resolve;});
   return r.fulfill(deny?{status:403,json:{error:'Access expired'}}:{json:{applications:[app],persona:{id:'owner',canReview:false}}});
  });
- await page.goto('/admin/contributors');await page.getByRole('button',{name:'My application',exact:true}).click();await page.getByText('Edit my application',{exact:true}).click();
+ await page.goto('/admin/contributors');await page.getByRole('button',{name:'My contribution',exact:true}).click();await page.getByText('Edit my application',{exact:true}).click();
  const input=page.getByRole('textbox',{name:'Contribution interests',exact:true});await input.fill('Unsaved work');
  const focus=async()=>{await page.clock.fastForward(31000);await page.evaluate(()=>window.dispatchEvent(new Event('visibilitychange')));};
  await focus();await expect.poll(()=>lists).toBe(2);await expect(input).toHaveValue('Unsaved work');const refreshed=page.waitForResponse(r=>r.url().endsWith('/api/contributors')&&r.request().method()==='POST');release();await refreshed;await expect(input).toHaveValue('Unsaved work');
