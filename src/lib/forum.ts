@@ -168,6 +168,7 @@ export interface PublishArgs {
   refUID?: `0x${string}`;
   /** Defaults to the forum community; contributor form uses CONTRIB_COMMUNITY. */
   community?: string;
+  onAttested?: (uid: Hash) => void;
 }
 
 /** Sign + submit a post (or reply) as an on-chain EAS attestation on Base. */
@@ -198,6 +199,11 @@ export async function publishPost(args: PublishArgs): Promise<Hash> {
   });
   const receipt = await basePublic.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success") throw Error("Transaction reverted on Base.");
+  if(args.onAttested){
+    const events=parseEventLogs({abi:EAS_ABI,logs:receipt.logs.filter(l=>l.address.toLowerCase()===EAS_ADDRESS.toLowerCase()),eventName:'Attested'});
+    const event=events.find(e=>e.args.attester.toLowerCase()===account.toLowerCase()&&e.args.schemaUID===SCHEMA_UID);
+    if(event)args.onAttested(event.args.uid);
+  }
   return hash;
 }
 

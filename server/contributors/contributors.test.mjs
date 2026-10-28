@@ -140,8 +140,8 @@ test('declining edits preserves draft and stale or signed edits cannot replace i
  assert.throws(()=>core.transition(s,applicant,id,{action:'request_memo_edit',expectedVersion:1,...request}),/record changed/);
  s.applications[0].memos[0].consent={typedData:{message:{deadline:1}}};
  assert.throws(()=>act(applicant,'request_memo_edit',request),/already signed/);
- assert.throws(()=>act(partner,'draft_memo',terms),/expire and be verified/);
- assert.throws(()=>act(partner,'draft_memo',{...terms,expiredConsentVerified:true}),/expire and be verified/);
+ assert.throws(()=>act(partner,'draft_memo',terms),/already signed/);
+ assert.throws(()=>act(partner,'draft_memo',{...terms,expiredConsentVerified:true}),/already signed/);
 });
 
 test('expired draft revision requires finalized expiry and unused original-contract consent',async()=>{
@@ -216,4 +216,24 @@ test('only the applicant edits application details without changing approved aut
  const a=state.applications[0];a.state='approved';a.memos=[{version:1,status:'issued',scope:'Signed responsibilities'}];a.credential={tokenId:'1'};a.sourceAttestation={uid:'original'};
  const next=core.transition(state,applicant,id,{action:'edit_application',expectedVersion:a.version,specialty:'New interests'}).applications[0];
  assert.equal(next.state,'approved');assert.deepEqual(next.memos,a.memos);assert.deepEqual(next.credential,a.credential);assert.deepEqual(next.sourceAttestation,a.sourceAttestation);assert.equal(next.applicationEdits.length,2);
+});
+
+test('automatic HTTP intake requires the verified session and CSRF, waits for finality and deletes its temporary key',async()=>{
+ const mem=memory(),wallet='0x'+'6'.repeat(40),uid='0x'+'7'.repeat(64),contentKey='8'.repeat(64);let finalized=false;
+ const handler=createContributorHandler('gov',{env:{CONTRIBUTORS_ENABLED:'1',CONTRIBUTOR_IDENTITY_SECRET:secret,CONTRIBUTOR_STORAGE_SECRET:secret},command:mem.command,verifyWallet:async({signature})=>signature==='valid',actorFor:async s=>({...applicant,id:s.identity,wallet:s.wallet,authorityExpiresAt:Date.now()+10000}),baseReader:async(_p,s,input,_client,options)=>{
+  assert.equal(s.wallet,wallet);assert.equal(input.contentKey,contentKey);
+  if(!options&& !finalized)throw Object.assign(Error('Not finalized yet'),{status:409});
+  return {application:{...interest,email:'',requestedRoles:[],wallet},source:{uid,attester:wallet,chainId:8453,dataHash:'fixed'}};
+ }});
+ let res=response();await handler(req({action:'stage_base',uid,contentKey}),res);assert.equal(res.code,401);
+ res=response();await handler(req({action:'wallet_login_start',address:wallet}),res);const challenge=res.body.challenge,binding=res.headers['Set-Cookie'].split(';')[0];
+ res=response();await handler(req({action:'wallet_login_finish',challenge,signature:'valid'},{cookie:binding}),res);const cookie=res.headers['Set-Cookie'][0].split(';')[0];
+ res=response();await handler({...req({}, {cookie}),method:'GET'},res);const csrf=res.body.session.csrf;
+ res=response();await handler(req({action:'stage_base',uid,contentKey},{cookie}),res);assert.equal(res.code,403);
+ res=response();await handler(req({action:'stage_base',uid,contentKey},{cookie,'x-contributor-csrf':csrf}),res);
+ assert.equal(res.code,200);assert.equal(res.body.applications.length,0);assert.equal(res.body.intakes[0].status,'waiting_finality');assert.ok(!JSON.stringify(res.body).includes(contentKey));
+ const key=[...mem.values.keys()].find(k=>k.includes(':intake-key:'));assert.ok(key);assert.ok(!mem.values.get(key).includes(contentKey));
+ finalized=true;
+ res=response();await handler(req({action:'list'},{cookie,'x-contributor-csrf':csrf}),res);
+ assert.equal(res.code,200);assert.equal(res.body.applications.length,1);assert.equal(res.body.applications[0].state,'submitted');assert.equal(res.body.applications[0].credential,null);assert.equal(res.body.intakes.length,0);assert.ok(!mem.values.has(key));assert.ok(!JSON.stringify(res.body).includes(contentKey));
 });

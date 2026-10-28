@@ -1,3 +1,4 @@
+import {stageIntake,settleIntakes,intakeView,intakeVault} from './intake.mjs';
 import {govRoleRoster} from '../gov-role-roster.mjs';
 import {readBaseApplication} from './base-application.mjs';
 import {createHash,createHmac,randomUUID} from 'node:crypto';
@@ -33,12 +34,23 @@ export function createContributorHandler(project,{env=process.env,command=redisC
   if(body.action==='wallet_verify')return res.status(200).json(await auth.walletVerify(req,session,body.signature));
   if(body.action==='gov_roles'&&project==='gov')return res.status(200).json(await govRoleRoster(session.wallet,{env}));
   failureStage='role verification';
-  const actor=await actorFor(session,project),store=contributorStore(command,codec,project),service=contributorService();
+  let actor=await actorFor(session,project);const store=contributorStore(command,codec,project),service=contributorService(),vault=intakeVault(command,codec,project);
   if(body.action==='list'){
-   const state=await store.read();
+   let state=await store.read();
+   if(state.pendingIntakes?.some(p=>p.project===project&&((p.identity===actor.id)||actor.review.includes(project==='gov'?'inc-ops-governance':'research'))&&(p.expiresAt<=Date.now()&&p.status==='waiting_finality'||p.status==='waiting_finality'&&p.nextCheckAt<=Date.now()))){
+    const before=state.pendingIntakes;
+    state=await store.mutate(s=>settleIntakes(s,actor,project,{read:baseReader,service,vault}));
+    await Promise.all(before.filter(p=>!state.pendingIntakes.some(q=>q.uid===p.uid)||state.pendingIntakes.find(q=>q.uid===p.uid)?.status==='unlock_needed').map(p=>vault.remove(p.uid).catch(()=>{})));
+    if(actor.authorityExpiresAt<=Date.now())actor=await actorFor(session,project);
+   }
    const visible=state.applications.filter(a=>a.identity===actor.id||actor.review.includes(a.lane));
    if(visible.some(a=>a.credential)){const ctx=await chainContext(env);await Promise.all(visible.filter(a=>a.credential).map(a=>refreshCredential(a,ctx)));}
-   return res.status(200).json(service.view(state,actor,project));
+   if(actor.authorityExpiresAt<=Date.now())actor=await actorFor(session,project);
+   return res.status(200).json({...service.view(state,actor,project),intakes:intakeView(state,actor,project)});
+  }
+  if(body.action==='stage_base'){
+   const next=await store.mutate(async s=>{if(actor.authorityExpiresAt<=Date.now())throw Object.assign(Error('Authority expired. Retry.'),{status:503});return stageIntake(s,session,project,body,{read:baseReader,vault});});
+   return res.status(200).json({...service.view(next,actor,project),intakes:intakeView(next,actor,project)});
   }
   if(['chain_consent_prepare','chain_consent_save','chain_execute_prepare','chain_reconcile','chain_expire_bootstrap'].includes(body.action)){
    failureStage='credential contract verification';
@@ -69,13 +81,15 @@ export function createContributorHandler(project,{env=process.env,command=redisC
     if(actor.authorityExpiresAt<=Date.now())throw Object.assign(Error('Authority expired. Retry.'),{status:503});
     const linked=s.applications.find(a=>a.wallet===wallet&&a.walletVerification==='verified');
     const owner={id:linked?.identity||'wallet:'+createHmac('sha256',env.CONTRIBUTOR_IDENTITY_SECRET).update(wallet).digest('hex'),applicant:true,wallet};
-    return service.importBaseForReview(s,actor,owner,project,verified);
+    const next=service.importBaseForReview(s,actor,owner,project,verified);next.pendingIntakes=(next.pendingIntakes||[]).filter(p=>p.uid!==verified.source.uid);return next;
    });
+   await vault.remove(verified.source.uid).catch(()=>{});
    return res.status(200).json(service.view(next,actor,project));
   }
   if(body.action==='import_base'){
    const verified=await baseReader(project,session,body);
-   const next=await store.mutate(async s=>{if(actor.authorityExpiresAt<=Date.now())throw Object.assign(Error('Authority expired. Retry.'),{status:503});return service.importBase(s,actor,project,verified);});
+   const next=await store.mutate(async s=>{if(actor.authorityExpiresAt<=Date.now())throw Object.assign(Error('Authority expired. Retry.'),{status:503});const next=service.importBase(s,actor,project,verified);next.pendingIntakes=(next.pendingIntakes||[]).filter(p=>p.uid!==verified.source.uid);return next;});
+   await vault.remove(verified.source.uid).catch(()=>{});
    return res.status(200).json(service.view(next,actor,project));
   }
   if(body.action==='apply')return res.status(409).json({error:'Submit the wallet-signed Base application, then unlock it here to continue.'});

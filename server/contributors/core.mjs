@@ -49,7 +49,7 @@ function transition(original,actor,id,input,{expiredConsentVerified=false}={}){
  const action=input.action;
  if(app.chainOperation?.status==='prepared'&&['draft_memo','link_wallet','review_proposal','request_memo_edit','review_memo_edit'].includes(action))fail('Reconcile the prepared transaction before changing its terms.',409);
  const revisesMemo=action==='draft_memo'||action==='review_memo_edit'&&input.decision==='approve'||action==='review_proposal'&&input.decision==='approve'&&app.proposals.find(p=>p.id===input.proposalId)?.kind==='terms';
- if(revisesMemo&&app.memos.at(-1)?.status==='draft'&&app.memos.at(-1)?.consent&&!expiredConsentVerified)fail('The signed memorandum must expire and be verified on-chain before revising it.',409);
+ if(revisesMemo&&app.memos.at(-1)?.status==='draft'&&app.memos.at(-1)?.consent&&!expiredConsentVerified)fail('This version is already signed. Issue and confirm it before preparing an amendment; an edit cannot cancel a valid signature.',409);
  if(action==='standing'&&app.credential)fail('On-chain standing and amendment execution is not configured.',503);
  if(['start_review','request_info','resume_review','approve','reject'].includes(action)){
   fields(input,['action','expectedVersion','reason','privateNote']);
@@ -101,7 +101,7 @@ function transition(original,actor,id,input,{expiredConsentVerified=false}={}){
   if(!owns(actor,app))fail('Only the applicant can propose edits to their memorandum.',403);
   const memo=app.memos.at(-1);
   if(app.state!=='approved'||memo?.status!=='draft'||memo.version!==input.memoVersion||memo.hash!==input.memoHash)fail('Reload the current draft before proposing edits.',409);
-  if(memo.consent)fail('This memorandum is already signed. Ask a Partner to prepare a revised draft after the authorization expires.',409);
+  if(memo.consent)fail('This version is already signed. Ask a Partner to issue and confirm it, then prepare an amendment for a new signature.',409);
   if(app.memoEdits?.some(e=>e.state==='pending'))fail('A memorandum edit is already awaiting review.',409);
   const terms=memoTerms(input),edit={id:randomUUID(),baseVersion:memo.version,baseHash:memo.hash,terms,reason:text(input.reason,'Reason for edits'),requestedBy:actor.id,requestedAt:new Date().toISOString(),state:'pending'};
   app.memoEdits=[...(app.memoEdits||[]),edit];log(state,actor,app,action,{editId:edit.id,baseVersion:memo.version,reason:edit.reason});

@@ -17,6 +17,7 @@ export default function MemoSummary({app,memo,own,actor,busy,signMemo,executeCha
   {memo.allocationWeight&&<><p>Allocation weight: {memo.allocationWeight.label} of the Full Time baseline{memo.allocationWeight.custom?' (individual agreement)':''}.</p>{memo.allocationWeight.custom&&<p>{memo.allocationWeight.reason}</p>}<p>{memo.allocationNotice||'This earlier memorandum needs revised allocation terms before issuance.'}</p></>}
   {memo.historicalServiceStart&&<p>Historical service since {memo.historicalServiceStart}. Credential validity begins with the memorandum term.</p>}
 
+  {memo.status==='draft'&&memo.consent&&<p>Already signed. Issue and confirm this version before preparing an amendment. Your signature does not expire; editing a draft cannot cancel it.</p>}
   {signable&&!memo.consent&&<p>Review the terms above, then sign to accept and authorize issuance. This authorization has no expiry. You can propose changes below before signing.</p>}
   {!own&&!memo.consent&&!pending&&!inFlight&&memo.status==='draft'&&<p role="status">Waiting for the contributor to review and sign this memorandum.</p>}
   {actor.canIssue&&memo.consent&&!pending&&!inFlight&&memo.status==='draft'&&<p>The contributor has accepted this memorandum.</p>}
