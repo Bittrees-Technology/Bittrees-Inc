@@ -92,8 +92,14 @@ test('full public thread tool validates exact arguments and projects no author/p
 test('public search is discoverable, strictly scoped and strips extra source fields',async()=>{
  const row={id,postId:id,kind:'post',title:'Public topic',snippet:'Public match',time:100,revisionId:id,editedAt:null,body:'NOT_RETURNED',attester:'NOT_RETURNED',email:'NOT_RETURNED'};
  const request=args=>rpc('tools/call',{name:SEARCH_TOOL.name,arguments:args});
- const r=await call(request({query:' match ',limit:1}),{search:async args=>{assert.deepEqual(args,{query:'match',limit:1,offset:0});return {query:'match',items:[row],offset:0,scanned:1,nextOffset:1,privateNotes:'NOT_RETURNED'};}});
+ const r=await call(request({query:' match ',limit:1}),{search:async args=>{assert.deepEqual(args,{query:'match',limit:1,offset:0});return {query:'match',items:[row],offset:0,scanned:1,nextOffset:null,nextCursor:null,asOf:200,historyExhausted:true,privateNotes:'NOT_RETURNED'};}});
  assert.equal(r.body.result.isError,false);assert.deepEqual(Object.keys(r.body.result.structuredContent.items[0]).sort(),['editedAt','id','kind','postId','revisionId','snippet','time','title','url']);assert.equal(JSON.stringify(r.body).includes('NOT_RETURNED'),false);
  for(const args of [{query:'x'},{query:'okay',wallet:'private'},{query:'okay',regex:true},{query:'okay',limit:null},{query:'okay',offset:501}])assert.equal((await call(request(args),{search:async()=>{throw Error('must not read');}})).body.error.code,-32602);
  const failure=await call(request({query:'match'}),{search:async()=>{throw Error('private backend details');}});assert.equal(failure.body.result.isError,true);assert.equal(JSON.stringify(failure.body).includes('private backend details'),false);
+});
+
+test('history cursor validation happens before search and is not an authority or private-source selector',async()=>{
+ let calls=0;for(const cursor of ['bad','x'.repeat(513),Buffer.from(JSON.stringify({v:1,asOf:100,time:10,id,q:'wrong',wallet:'private'})).toString('base64url')]){
+ const r=await call(rpc('tools/call',{name:SEARCH_TOOL.name,arguments:{query:'public',cursor}}),{search:async()=>{calls++;throw Error('must not read');}});assert.equal(r.body.error.code,-32602);
+ }assert.equal(calls,0);
 });
