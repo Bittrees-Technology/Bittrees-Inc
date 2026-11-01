@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createForumMcpHandler,FORUM_TOOL,THREAD_TOOL} from '../server/forum-mcp.mjs';
+import {createForumMcpHandler,FORUM_TOOL,THREAD_TOOL,SEARCH_TOOL} from '../server/forum-mcp.mjs';
 import {forumFeed,schema} from '../server/forum-feed.mjs';
 const id='0x'+'a'.repeat(64);
 const headers={'content-type':'application/json',accept:'application/json, text/event-stream','mcp-protocol-version':'2025-06-18'};
@@ -13,7 +13,7 @@ const tool=args=>rpc('tools/call',{name:'gov.list_public_forum_posts',arguments:
 test('stateless initialization, discovery, ping and initialization notification need no wallet',async()=>{
  const init=await call(rpc('initialize',{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'test',version:'1'}}));
  assert.equal(init.body.result.protocolVersion,'2025-06-18');assert.deepEqual(init.body.result.capabilities,{tools:{listChanged:false}});assert.equal(init.headers['mcp-session-id'],undefined);
- assert.deepEqual((await call(rpc('tools/list'))).body.result.tools,[FORUM_TOOL,THREAD_TOOL]);
+ assert.deepEqual((await call(rpc('tools/list'))).body.result.tools,[FORUM_TOOL,THREAD_TOOL,SEARCH_TOOL]);
  assert.deepEqual((await call(rpc('ping'))).body.result,{});
  assert.equal((await call({jsonrpc:'2.0',method:'notifications/initialized'})).statusCode,202);
  assert.equal((await call(rpc('initialize',{protocolVersion:'future',capabilities:{},clientInfo:{name:'test',version:'1'}}))).body.result.protocolVersion,'2025-06-18');
@@ -72,7 +72,7 @@ test('source and public descriptors declare only the tested read-only route',asy
  const root=await readFile(new URL('../bittrees.tools.json',import.meta.url),'utf8');
  assert.equal(await readFile(new URL('../public/.well-known/bittrees-tools.json',import.meta.url),'utf8'),root);
  const manifest=JSON.parse(root);assert.equal(manifest.projectId,'bittrees-gov');assert.equal(manifest.connections.length,1);
- const c=manifest.connections[0];assert.equal(c.endpoint,'https://gov.bittrees.org/api/public-mcp');assert.equal(c.transport,'mcp');assert.deepEqual(c.operations,{read:[FORUM_TOOL.name,THREAD_TOOL.name]});assert.deepEqual(c.setup,{authentication:'none'});
+ const c=manifest.connections[0];assert.equal(c.endpoint,'https://gov.bittrees.org/api/public-mcp');assert.equal(c.transport,'mcp');assert.deepEqual(c.operations,{read:[FORUM_TOOL.name,THREAD_TOOL.name,SEARCH_TOOL.name]});assert.deepEqual(c.setup,{authentication:'none'});
 });
 
 test('malformed moderation storage responses fail closed before reading the index',async()=>{
@@ -87,4 +87,13 @@ test('full public thread tool validates exact arguments and projects no author/p
  assert.equal(r.body.result.isError,false);assert.deepEqual(Object.keys(r.body.result.structuredContent.root).sort(),['body','editedAt','id','revisionId','time','title','url']);assert.equal(JSON.stringify(r.body).includes('private@example'),false);assert.equal(JSON.stringify(r.body).includes('NEVER'),false);assert.equal(invoked,1);
  for(const args of [{},{postId:'bad'},{postId:'0x'+'0'.repeat(64)},{postId:id,replyLimit:11},{postId:id,replyOffset:101},{postId:id,wallet:'private'},{postId:id,url:'https://private.invalid'}])assert.equal((await call(rpc('tools/call',{name:THREAD_TOOL.name,arguments:args}),{thread:async()=>{throw Error('must not read');}})).body.error.code,-32602);
  const unavailable=await call(rpc('tools/call',{name:THREAD_TOOL.name,arguments:{postId:id}}),{thread:async()=>{throw Error('secret backend');}});assert.equal(unavailable.body.result.isError,true);assert.equal(JSON.stringify(unavailable.body).includes('secret backend'),false);
+});
+
+test('public search is discoverable, strictly scoped and strips extra source fields',async()=>{
+ const row={id,postId:id,kind:'post',title:'Public topic',snippet:'Public match',time:100,revisionId:id,editedAt:null,body:'NOT_RETURNED',attester:'NOT_RETURNED',email:'NOT_RETURNED'};
+ const request=args=>rpc('tools/call',{name:SEARCH_TOOL.name,arguments:args});
+ const r=await call(request({query:' match ',limit:1}),{search:async args=>{assert.deepEqual(args,{query:'match',limit:1,offset:0});return {query:'match',items:[row],offset:0,scanned:1,nextOffset:1,privateNotes:'NOT_RETURNED'};}});
+ assert.equal(r.body.result.isError,false);assert.deepEqual(Object.keys(r.body.result.structuredContent.items[0]).sort(),['editedAt','id','kind','postId','revisionId','snippet','time','title','url']);assert.equal(JSON.stringify(r.body).includes('NOT_RETURNED'),false);
+ for(const args of [{query:'x'},{query:'okay',wallet:'private'},{query:'okay',regex:true},{query:'okay',limit:null},{query:'okay',offset:501}])assert.equal((await call(request(args),{search:async()=>{throw Error('must not read');}})).body.error.code,-32602);
+ const failure=await call(request({query:'match'}),{search:async()=>{throw Error('private backend details');}});assert.equal(failure.body.result.isError,true);assert.equal(JSON.stringify(failure.body).includes('private backend details'),false);
 });
