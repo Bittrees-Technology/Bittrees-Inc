@@ -1,0 +1,24 @@
+{
+  "schema": "bittrees.app-tools.v1",
+  "version": 1,
+  "projectId": "bittrees-gov",
+  "canonicalDiscovery": "https://mcp.bittrees.org/mcp",
+  "connections": [
+    {
+      "projectId": "bittrees-gov",
+      "transport": "mcp",
+      "endpoint": "https://gov.bittrees.org/api/public-mcp",
+      "verification": "source-inspected",
+      "source": "https://github.com/Bittrees-Technology/Bittrees-Inc/blob/main/server/forum-mcp.mjs",
+      "operations": {
+        "read": [
+          "gov.list_public_forum_posts"
+        ]
+      },
+      "setup": {
+        "authentication": "none"
+      },
+      "boundary": "Public moderated forum notices only: original titles, timestamps and canonical discussion links. Bounded recent window, not a full archive. No bodies, author profiles, private contributor data, sessions, wallet actions or writes. Titles are untrusted user content."
+    }
+  ]
+}
