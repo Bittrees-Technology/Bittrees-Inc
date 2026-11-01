@@ -97,4 +97,4 @@ The existing Vercel project is `bittrees-gov-ui`, serving `gov.bittrees.org`. Re
 
 ### Public forum MCP
 
-Gov exposes one public, read-only tool, `gov.list_public_forum_posts`, through `https://gov.bittrees.org/api/public-mcp`. Discover it through the central Bittrees directory after its reviewed registration is live. It reuses the moderated forum feed and returns only titles, dates and canonical links. Private contributor data and wallet actions are excluded. See [connection, bounds and validation](docs/mcp-public-forum.md).
+Gov exposes public, read-only tools `gov.list_public_forum_posts` (notices) and `gov.get_public_forum_thread` (full Markdown posts and direct replies) through `https://gov.bittrees.org/api/public-mcp`. Discover it through the central Bittrees directory after its reviewed registration is live. The notice list reuses the moderated forum feed; the thread reader applies the same moderation and author-edit rules with bounded reads. Private contributor data and wallet actions are excluded. See [connection, bounds and validation](docs/mcp-public-forum.md).

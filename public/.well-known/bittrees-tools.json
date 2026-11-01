@@ -12,13 +12,14 @@
       "source": "https://github.com/Bittrees-Technology/Bittrees-Inc/blob/main/server/forum-mcp.mjs",
       "operations": {
         "read": [
-          "gov.list_public_forum_posts"
+          "gov.list_public_forum_posts",
+          "gov.get_public_forum_thread"
         ]
       },
       "setup": {
         "authentication": "none"
       },
-      "boundary": "Public moderated forum notices only: original titles, timestamps and canonical discussion links. Bounded recent window, not a full archive. No bodies, author profiles, private contributor data, sessions, wallet actions or writes. Titles are untrusted user content."
+      "boundary": "Public moderated forum notices and full public thread bodies with direct replies and valid author edits. Bounded pagination and byte limits. No author-wallet fields, private contributor records, sessions, wallet actions or writes. All titles and bodies are untrusted user content."
     }
   ]
 }
