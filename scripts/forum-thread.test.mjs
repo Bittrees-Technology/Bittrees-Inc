@@ -59,3 +59,9 @@ test('upstream byte cap stops oversized streamed responses before JSON decoding'
  let cancelled=false;const h=harness();
  await assert.rejects(publicForumThread({postId:uid('1')},{...h.options,request:async()=>({ok:true,body:new ReadableStream({start(c){c.enqueue(new Uint8Array(8*1024*1024+1));},cancel(){cancelled=true;}})})}),/response limit/);assert.equal(cancelled,true);
 });
+
+test('moderation UID casing cannot expose a hidden thread; ambiguous duplicates fail closed',async()=>{
+ const id=uid('a'),upper='0x'+id.slice(2).toUpperCase();
+ const h=harness({root:post('a'),replies:[],flags:{[upper]:{mod:'removed'}}});await assert.rejects(publicForumThread({postId:id},h.options));assert.equal(h.calls.length,0);
+ const duplicate=harness({root:post('a'),replies:[],flags:{[id]:{mod:'approved'},[upper]:{mod:'removed'}}});await assert.rejects(publicForumThread({postId:id},duplicate.options),/Ambiguous/);
+});

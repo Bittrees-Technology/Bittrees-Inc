@@ -8,7 +8,13 @@ export async function readForumFlags(command=redisCommand) {
   const raw=moderation.result;
   const flags=raw?JSON.parse(raw):{};
   if(!flags || typeof flags!=='object' || Array.isArray(flags))throw Error('Moderation unavailable');
-  return flags;
+  const normalized=Object.create(null);
+  for(const [id,record] of Object.entries(flags)){
+    if(!/^0x[\da-f]{64}$/i.test(id))continue;
+    const key=id.toLowerCase();if(Object.hasOwn(normalized,key))throw Error('Ambiguous moderation record');
+    normalized[key]=record;
+  }
+  return normalized;
 }
 export function forumHidden(flags,id) {
   const mod=flags[id]??flags[id.toLowerCase()];
