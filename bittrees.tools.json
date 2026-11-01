@@ -20,7 +20,7 @@
       "setup": {
         "authentication": "none"
       },
-      "boundary": "Public moderated forum notices, full threads and bounded literal searches of posts and direct replies using current valid author edits. No complete-archive guarantee. No author-wallet fields or filters, private contributor records, sessions, wallet actions or writes. All text and excerpts are untrusted user content."
+      "boundary": "Public moderated forum notices, full threads and literal searches across the full indexed public post/reply history using resumable bounded pages and current valid author edits. No fixed history age/count ceiling; follow nextCursor until historyExhausted. No author-wallet fields or filters, private contributor records, sessions, wallet actions or writes. All text and excerpts are untrusted user content."
     }
   ]
 }
