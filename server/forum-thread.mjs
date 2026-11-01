@@ -49,10 +49,10 @@ export async function publicForumThread({postId,replyLimit=5,replyOffset=0},{req
  if(!root||root.id!==postId||root.refUID!==ZERO)throw Error('Public thread unavailable');
  const candidates=data.replies.slice(0,replyLimit),seen=new Set([postId]);
  const replies=candidates.map(r=>original(r,true,now)).filter(r=>{if(!r||r.refUID!==postId||seen.has(r.id)||forumHidden(flags,r.id))return false;seen.add(r.id);return true;});
- const posts=[root,...replies],ids=posts.map(p=>p.id),authors=[...new Set(posts.map(p=>p.attester))],revisions=[];
+ const posts=[root,...replies],ids=posts.map(p=>p.id),revisions=[];
  let complete=false;
  for(let skip=0;skip<150;skip+=50){
-  const page=await indexRead(`query PublicThreadRevisions($schema:String!,$ids:[String!]!,$authors:[String!]!,$now:Int!,$skip:Int!){revisions:attestations(where:{schemaId:{equals:$schema},refUID:{in:$ids},attester:{in:$authors},revocationTime:{equals:0},time:{lte:$now}},orderBy:[{time:asc},{id:asc}],take:50,skip:$skip){${FIELDS}}}`,{schema:revisionSchema,ids,authors,now,skip},request);
+  const page=await indexRead(`query PublicThreadRevisions($schema:String!,$ids:[String!]!,$now:Int!,$skip:Int!){revisions:attestations(where:{schemaId:{equals:$schema},refUID:{in:$ids},revocationTime:{equals:0},time:{lte:$now}},orderBy:[{time:asc},{id:asc}],take:50,skip:$skip){${FIELDS}}}`,{schema:revisionSchema,ids,now,skip},request);
   if(!Array.isArray(page.revisions)||page.revisions.length>50)throw Error('Invalid public edit history');
   revisions.push(...page.revisions);if(page.revisions.length<50){complete=true;break;}
  }

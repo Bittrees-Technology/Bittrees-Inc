@@ -18,7 +18,7 @@ test('returns full public bodies and same-author edits without exposing wallets 
  const h=harness({revisions:[edit(),edit('4',{title:'',body:'Edited reply'},{refUID:reply.id,attester:reply.attester,time:21})]});
  const result=await publicForumThread({postId:uid('1')},h.options);
  assert.equal(result.root.body,'Current **Markdown**');assert.equal(result.root.revisionId,uid('3'));assert.equal(result.replies[0].body,'Edited reply');
- assert.deepEqual(Object.keys(result.root).sort(),['body','editedAt','id','revisionId','time','title','url']);assert.equal(JSON.stringify(result).includes(wallet),false);assert.equal(result.contentFormat,'markdown');assert.equal(h.commandCount(),2);assert.equal(h.calls.length,2);
+ assert.deepEqual(Object.keys(result.root).sort(),['body','editedAt','id','revisionId','time','title','url']);assert.equal(JSON.stringify(result).includes(wallet),false);assert.equal(result.contentFormat,'markdown');assert.equal(h.commandCount(),2);assert.equal(h.calls.length,2);assert.equal(h.calls[1].query.includes('attester:{in:'),false);
 });
 test('edit resolution matches existing forum rules for wrong author/schema/community/version and stable timestamp ties',async()=>{
  const valid=edit(),bad=[edit('5',{}, {attester:'0x'+'b'.repeat(40)}),edit('6',{community:'bittrees-contributors'}),edit('7',{version:2}),edit('8',{}, {revocationTime:30}),edit('9',{}, {expirationTime:50})],tie=edit('a',{body:'Tie winner'});
