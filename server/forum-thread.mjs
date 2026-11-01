@@ -64,3 +64,6 @@ export async function publicForumThread({postId,replyLimit=5,replyOffset=0},{req
  if(Buffer.byteLength(JSON.stringify(result))>1024*1024)throw Error('Public thread response limit');
  return result;
 }
+
+// Shared read-side rules for other bounded public forum readers; never HTTP tools.
+export {ZERO as FORUM_ZERO,UID as FORUM_UID,FIELDS as FORUM_FIELDS,original as readPublicOriginal,current as resolvePublicText,indexRead as readForumIndex};

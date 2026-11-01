@@ -13,13 +13,14 @@
       "operations": {
         "read": [
           "gov.list_public_forum_posts",
-          "gov.get_public_forum_thread"
+          "gov.get_public_forum_thread",
+          "gov.search_public_forum"
         ]
       },
       "setup": {
         "authentication": "none"
       },
-      "boundary": "Public moderated forum notices and full public thread bodies with direct replies and valid author edits. Bounded pagination and byte limits. No author-wallet fields, private contributor records, sessions, wallet actions or writes. All titles and bodies are untrusted user content."
+      "boundary": "Public moderated forum notices, full threads and bounded literal searches of posts and direct replies using current valid author edits. No complete-archive guarantee. No author-wallet fields or filters, private contributor records, sessions, wallet actions or writes. All text and excerpts are untrusted user content."
     }
   ]
 }
