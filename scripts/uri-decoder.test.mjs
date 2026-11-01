@@ -21,11 +21,11 @@ test('all installed query-string callers resolve the patched decoder', () => {
   visit(resolve('node_modules'));
   const callers = packages.filter(p => p.name === 'query-string');
   assert(callers.length > 0);
-  for (const p of packages.filter(p => p.name === 'decode-uri-component')) assert.equal(p.version, '0.5.0');
+  for (const p of packages.filter(p => p.name === 'decode-uri-component')) assert.equal(p.version, '0.5.1');
   for (const p of callers) {
     const require = createRequire(join(p.path, 'package.json'));
     const decoder = require.resolve('decode-uri-component');
-    assert.equal(JSON.parse(readFileSync(join(dirname(decoder), 'package.json'), 'utf8')).version, '0.5.0');
+    assert.equal(JSON.parse(readFileSync(join(dirname(decoder), 'package.json'), 'utf8')).version, '0.5.1');
     assert.equal(require('./index.js').parse('x=%C3%A5').x, 'å');
   }
 });

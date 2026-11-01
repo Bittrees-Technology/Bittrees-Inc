@@ -94,3 +94,7 @@ Foundry uses Solidity 0.8.30, optimizer 200 runs, and the OpenZeppelin installat
 Roles authority/feed configuration and protected storage are also required; inspect the current [handler](server/contributors/handler.mjs), [authority integration](server/contributors/authority.mjs), [chain checks](server/contributors/chain.mjs) and [ecosystem client](server/ecosystem-client.mjs). Never expose signing keys or storage secrets through `VITE_` variables. The older [service notes](server/contributors/README.md) and [deployment guide](DEPLOY.md) include historical email-first/Push setup; the wallet-only contributor flow and Chat routing above describe the current product.
 
 The existing Vercel project is `bittrees-gov-ui`, serving `gov.bittrees.org`. Retain required checks, verify the exact deployed source, and preserve wallet/Safe approvals. A web release neither executes pending role transactions nor changes deployed contracts. New contracts or a token reissue require a separate reviewed rollout.
+
+### Public forum MCP
+
+Gov exposes one public, read-only tool, `gov.list_public_forum_posts`, through `https://gov.bittrees.org/api/public-mcp`. Discover it through the central Bittrees directory after its reviewed registration is live. It reuses the moderated forum feed and returns only titles, dates and canonical links. Private contributor data and wallet actions are excluded. See [connection, bounds and validation](docs/mcp-public-forum.md).

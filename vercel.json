@@ -185,6 +185,9 @@
     },
     "api/contributor-artwork.js": {
       "includeFiles": "public/bittrees_logo_tree.png"
+    },
+    "api/public-mcp.js": {
+      "maxDuration": 45
     }
   },
   "redirects": [

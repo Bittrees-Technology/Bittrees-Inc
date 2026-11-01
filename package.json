@@ -25,6 +25,7 @@
     "postbuild": "node scripts/build-seo.mjs",
     "test:seo": "node --test scripts/seo.test.mjs",
     "test:forum": "playwright test -c playwright.forum.config.ts",
+    "test:forum-mcp": "node --test scripts/forum-mcp.test.mjs",
     "test:forum-subscriptions": "node --test scripts/forum-subscriptions.test.mjs",
     "test:contributors": "node --test server/contributors/*.test.mjs",
     "test:contributors-browser": "playwright test -c playwright.contributors.config.ts"
@@ -82,11 +83,11 @@
       "uuid": "11.1.1"
     },
     "query-string": {
-      "decode-uri-component": "0.5.0"
+      "decode-uri-component": "0.5.1"
     },
-    "joi@>=17.0.0 <17.13.8": "17.13.8",
+    "joi@>=17.0.0 <17.13.9": "17.13.9",
     "qs@>=6.0.0 <6.17.0": "6.17.0",
-    "follow-redirects@<1.16.1": "1.16.1",
+    "follow-redirects@<1.16.2": "1.16.2",
     "zod@<4.6.6": "4.6.7"
   }
 }
