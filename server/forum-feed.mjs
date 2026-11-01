@@ -2,14 +2,29 @@ import {encodePacked, keccak256} from 'viem';
 import {redisCommand} from './signed-registry.mjs';
 export const schema = keccak256(encodePacked(['string','address','bool'],['string community,string title,string body','0x0000000000000000000000000000000000000000',true]));
 const zero='0x'+'0'.repeat(64);
-export async function forumFeed({since=0, request=fetch, command=redisCommand, now=Math.floor(Date.now()/1000), limit=100, maxPages=50}={}) {
-  // Fail closed if moderation cannot be read; never mail hidden content on a storage outage.
-  if(!Number.isInteger(maxPages)||maxPages<1||maxPages>50)throw Error('Invalid forum read bound');
+export async function readForumFlags(command=redisCommand) {
   const moderation=await command(['GET','bittrees:flags']);
   if(!moderation||!Object.hasOwn(moderation,'result')||(moderation.result!==null&&typeof moderation.result!=='string'))throw Error('Moderation unavailable');
   const raw=moderation.result;
   const flags=raw?JSON.parse(raw):{};
   if(!flags || typeof flags!=='object' || Array.isArray(flags))throw Error('Moderation unavailable');
+  const normalized=Object.create(null);
+  for(const [id,record] of Object.entries(flags)){
+    if(!/^0x[\da-f]{64}$/i.test(id))continue;
+    const key=id.toLowerCase();if(Object.hasOwn(normalized,key))throw Error('Ambiguous moderation record');
+    normalized[key]=record;
+  }
+  return normalized;
+}
+export function forumHidden(flags,id) {
+  const mod=flags[id]??flags[id.toLowerCase()];
+  if(mod!==undefined&&(!mod||typeof mod!=='object'||Array.isArray(mod)||mod.by!==undefined&&!Array.isArray(mod.by)||mod.mod!=null&&!['approved','removed'].includes(mod.mod)))throw Error('Moderation unavailable');
+  return mod?.mod==='removed'||(mod?.mod!=='approved'&&new Set(mod?.by||[]).size>=2);
+}
+export async function forumFeed({since=0, request=fetch, command=redisCommand, now=Math.floor(Date.now()/1000), limit=100, maxPages=50}={}) {
+  // Fail closed if moderation cannot be read; never mail hidden content on a storage outage.
+  if(!Number.isInteger(maxPages)||maxPages<1||maxPages>50)throw Error('Invalid forum read bound');
+  const flags=await readForumFlags(command);
   const items=[];
   let complete=false;
   for(let skip=0;skip<100*maxPages;skip+=100){
@@ -18,8 +33,7 @@ export async function forumFeed({since=0, request=fetch, command=redisCommand, n
     if(!response.ok || data.errors || !Array.isArray(data.data?.attestations))throw Error('Forum unavailable');
     for(const row of data.data.attestations){
       if(row.schemaId!==schema || row.refUID!==zero || row.revocationTime!==0 || (row.expirationTime!==0&&row.expirationTime<=now) || !/^0x[\da-f]{64}$/i.test(row.id) || !Number.isSafeInteger(row.time) || row.time<since || row.time>now)continue;
-      const mod=flags[row.id];
-      if(mod?.mod==='removed' || (mod?.mod!=='approved'&&new Set(mod?.by||[]).size>=2))continue;
+      if(forumHidden(flags,row.id))continue;
       let fields;try{fields=Object.fromEntries(JSON.parse(row.decodedDataJson).map(f=>[f.name,f.value.value]));}catch{continue;}
       if(fields.community!=='bittrees-inc' || typeof fields.title!=='string' || !fields.title.trim())continue;
       // Link-only notices avoid copying immutable or subsequently edited post bodies into mail.
