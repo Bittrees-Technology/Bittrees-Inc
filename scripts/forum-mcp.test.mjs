@@ -74,3 +74,9 @@ test('source and public descriptors declare only the tested read-only route',asy
  const manifest=JSON.parse(root);assert.equal(manifest.projectId,'bittrees-gov');assert.equal(manifest.connections.length,1);
  const c=manifest.connections[0];assert.equal(c.endpoint,'https://gov.bittrees.org/api/public-mcp');assert.equal(c.transport,'mcp');assert.deepEqual(c.operations,{read:[FORUM_TOOL.name]});assert.deepEqual(c.setup,{authentication:'none'});
 });
+
+test('malformed moderation storage responses fail closed before reading the index',async()=>{
+ for(const value of [undefined,{}, {result:undefined},{result:[]},{result:{}},{result:'[]'}]){
+  await assert.rejects(forumFeed({command:async()=>value,request:async()=>{throw Error('index must not be read');}}),/Moderation unavailable/);
+ }
+});

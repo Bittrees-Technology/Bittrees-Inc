@@ -4,7 +4,10 @@ export const schema = keccak256(encodePacked(['string','address','bool'],['strin
 const zero='0x'+'0'.repeat(64);
 export async function forumFeed({since=0, request=fetch, command=redisCommand, now=Math.floor(Date.now()/1000), limit=100, maxPages=50}={}) {
   // Fail closed if moderation cannot be read; never mail hidden content on a storage outage.
-  const raw=(await command(['GET','bittrees:flags'])).result;
+  if(!Number.isInteger(maxPages)||maxPages<1||maxPages>50)throw Error('Invalid forum read bound');
+  const moderation=await command(['GET','bittrees:flags']);
+  if(!moderation||!Object.hasOwn(moderation,'result')||(moderation.result!==null&&typeof moderation.result!=='string'))throw Error('Moderation unavailable');
+  const raw=moderation.result;
   const flags=raw?JSON.parse(raw):{};
   if(!flags || typeof flags!=='object' || Array.isArray(flags))throw Error('Moderation unavailable');
   const items=[];
