@@ -98,3 +98,5 @@ The existing Vercel project is `bittrees-gov-ui`, serving `gov.bittrees.org`. Re
 ### Public forum MCP
 
 Gov exposes public, read-only tools `gov.list_public_forum_posts` (notices) and `gov.get_public_forum_thread` (full Markdown posts and direct replies), and `gov.search_public_forum` (full-history keyword search of current visible text through resumable bounded pages) through `https://gov.bittrees.org/api/public-mcp`. Discover it through the central Bittrees directory after its reviewed registration is live. The notice list reuses the moderated forum feed; the thread reader applies the same moderation and author-edit rules with bounded reads. Private contributor data and wallet actions are excluded. See [connection, bounds and validation](docs/mcp-public-forum.md).
+
+Public forum MCP search supports optional inclusive UTC creation dates (`from`, `to`) and `kind: all|post|reply` across full-history cursor pages. Keep query and filters unchanged on continuation. See [public forum MCP](docs/mcp-public-forum.md).

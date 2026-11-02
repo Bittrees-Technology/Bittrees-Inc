@@ -89,3 +89,27 @@ test('malformed or repeated source positions cannot produce a looping or skippin
  const repeated=harness({candidates:[post(),post()]});await assert.rejects(searchPublicForum({query:'public'},repeated.options),/ordering/);
  await assert.rejects(searchPublicForum({query:'public'},harness({candidates:[post(1,{}, {time:101})]}).options),/ordering/);
 });
+
+test('inclusive UTC creation dates and kind filters select own-time replies with older parents and current edits',async()=>{
+ const start=Date.parse('2024-02-29T00:00:00Z')/1000,end=start+86399;
+ const root=post(1,{body:'target old'},{time:start-1}),reply=post(2,{body:'target reply',title:''},{time:start,refUID:uid(1)});
+ const candidates=[root,reply,post(3,{body:'target end'},{time:end}),post(4,{body:'target outside'},{time:end+1})];
+ const make=()=>{const h=harness({candidates,parents:[root],revisions:[edit(100,{body:'target revised',title:''},{refUID:uid(2),time:end+100})],paged:true});h.options.now=end+200;return h;};
+ for(const [kind,expected] of [['all',[uid(3),uid(2)]],['post',[uid(3)]],['reply',[uid(2)]]]){
+  const h=make(),r=await searchPublicForum({query:'target',from:'2024-02-29',to:'2024-02-29',kind},h.options);assert.deepEqual(r.items.map(x=>x.id),expected);assert.deepEqual(r.filters,{from:'2024-02-29',to:'2024-02-29',kind});
+  assert.equal(h.calls[0].variables.from,start);assert.equal(h.calls[0].variables.before,end+1);assert(h.calls[0].query.includes('gte:$from'));if(kind==='reply')assert.equal(r.items[0].revisionId,uid(100));
+ }
+ assert.deepEqual((await searchPublicForum({query:'target',from:'2024-03-02'},make().options)).items,[]);
+ assert.deepEqual((await searchPublicForum({query:'target',to:'2024-02-28'},make().options)).items.map(x=>x.id),[uid(1)]);
+});
+test('invalid calendar dates, ranges, kinds and private selectors fail before reads',async()=>{
+ let reads=0;for(const args of [{from:'2023-02-29'},{from:'2024-02-30'},{to:'2024-13-01'},{from:'2024-2-01'},{from:'1969-12-31'},{to:null},{from:0},{from:'2024-01-02',to:'2024-01-01'},{kind:'posts'},{kind:null},{wallet:wallet}])await assert.rejects(searchPublicForum({query:'target',...args},{command:async()=>{reads++;}}),/Invalid/);assert.equal(reads,0);
+});
+test('filtered cursor pages preserve ties, bind normalized filters, and retain unfiltered legacy cursors',async()=>{
+ const time=Date.parse('2024-02-29T12:00:00Z')/1000,candidates=Array.from({length:40},(_,i)=>post(i+1,{body:'target'},{time}));
+ const h=harness({candidates,paged:true});h.options.now=time+100;
+ const filters={from:'2024-02-29',to:'2024-02-29',kind:'post'};let page=await searchPublicForum({query:'target',limit:3,...filters},h.options),cursor=page.nextCursor,ids=page.items.map(x=>x.id);
+ let reads=0;for(const changed of [{...filters,kind:'all'},{...filters,from:'2024-02-28'},{...filters,to:undefined},{}])await assert.rejects(searchPublicForum({query:'target',cursor,...changed},{command:async()=>{reads++;},now:h.options.now}),/cursor/);assert.equal(reads,0);
+ while(cursor){page=await searchPublicForum({query:'TARGET',limit:7,cursor,...filters},h.options);ids.push(...page.items.map(x=>x.id));cursor=page.nextCursor;}assert.equal(new Set(ids).size,40);assert.equal(ids.length,40);
+ const legacy=await searchPublicForum({query:'target',limit:1},h.options);assert.equal((await searchPublicForum({query:'target',kind:'all',cursor:legacy.nextCursor},h.options)).items.length,5);
+});

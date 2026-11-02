@@ -103,3 +103,13 @@ test('history cursor validation happens before search and is not an authority or
  const r=await call(rpc('tools/call',{name:SEARCH_TOOL.name,arguments:{query:'public',cursor}}),{search:async()=>{calls++;throw Error('must not read');}});assert.equal(r.body.error.code,-32602);
  }assert.equal(calls,0);
 });
+
+test('search filter schema, validation, normalized output and defensive projection preserve the read boundary',async()=>{
+ assert.deepEqual(SEARCH_TOOL.inputSchema.properties.kind.enum,['all','post','reply']);assert.equal(SEARCH_TOOL.inputSchema.properties.from.format,'date');
+ const request=args=>rpc('tools/call',{name:SEARCH_TOOL.name,arguments:args});let reads=0;
+ for(const args of [{from:'2023-02-29'},{to:'2024-00-01'},{from:'2024-02-02',to:'2024-02-01'},{kind:'admin'},{kind:'reply',wallet:'private'}])assert.equal((await call(request({query:'public',...args}),{search:async()=>{reads++;}})).body.error.code,-32602);assert.equal(reads,0);
+ const row={id,postId:id,kind:'reply',title:'Public',snippet:'Public text',time:100,revisionId:id,editedAt:null};
+ const result=items=>({query:'public',items,offset:0,scanned:1,nextOffset:null,nextCursor:null,asOf:200,historyExhausted:true});
+ const response=await call(request({query:'public',from:'1970-01-01',to:'1970-01-01',kind:'reply'}),{search:async args=>{assert.equal(args.kind,'reply');return result([row]);}});assert.equal(response.body.result.isError,false);assert.deepEqual(response.body.result.structuredContent.filters,{from:'1970-01-01',to:'1970-01-01',kind:'reply'});
+ for(const args of [{kind:'post'},{from:'1970-01-02'}])assert.equal((await call(request({query:'public',...args}),{search:async()=>result([row])})).body.result.isError,true);
+});
