@@ -40,7 +40,7 @@ test('initial HTML contains the existing public explanations and complete DAO na
   const dao=html.match(/<nav aria-label="DAO"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
   assert(dao,`${path} needs named DAO navigation`);
   assert.deepEqual([...dao.matchAll(/href="([^"]+)"/g)].map(m=>m[1]),[
-   'https://gov.bittrees.org','https://research.bittrees.org','https://capital.bittrees.org',
+   'https://gov.bittrees.org','https://research.bittrees.org/about','https://capital.bittrees.org',
   ]);
   assert(html.includes('href="https://bittrees.org"'));
   assert(html.includes('href="https://index.bittrees.org"'));

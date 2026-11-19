@@ -11,7 +11,7 @@ export const BITTREES_LINKS = [
 /** Only Governance, Research and Capital form the DAO. */
 export const DAO_LINKS = [
   { label: "Governance", href: "https://gov.bittrees.org" },
-  { label: "Research", href: "https://research.bittrees.org" },
+  { label: "Research", href: "https://research.bittrees.org/about" },
   { label: "Capital", href: "https://capital.bittrees.org" },
 ] as const;
 
