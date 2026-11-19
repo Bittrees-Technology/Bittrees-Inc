@@ -5,9 +5,25 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import http from "node:http";
 
-import { SITE_CONFIG, runReleaseGate } from "./release-gate.mjs";
+import { SITE_CONFIG, runReleaseGate, buildAssertions } from "./release-gate.mjs";
 
 function mockPayloadFor(checkId) {
+  const check = SITE_CONFIG.checks.find(check => check.id === checkId);
+  if (checkId.startsWith("route-historical-")) return {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8" },
+    body: '<!doctype html><html><head><meta name="robots" content="index,follow"><link rel="canonical" href="' + check.expect.canonical + '"></head><body>' + check.expect.bodyIncludes.map(part => '<p>' + part + '</p>').join('') + '</body></html>',
+  };
+  if (checkId.startsWith("route-excluded-proposal-")) return {
+    status: 200,
+    headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex, follow" },
+    body: '<!doctype html><html><head><meta name="robots" content="noindex,follow"></head><body><div id="root"></div></body></html>',
+  };
+  if (checkId === "route-sitemap") return {
+    status: 200,
+    headers: { "content-type": "application/xml" },
+    body: '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + check.expect.sitemapUrls.map(url => '<url><loc>' + url + '</loc></url>').join('') + '</urlset>',
+  };
   switch (checkId) {
     case "route-messenger-redirect":
     case "route-chirpy-redirect":
@@ -166,6 +182,49 @@ test("unknown routes cannot pass as a successful SPA fallback", async () => {
   } finally {
     await server.close();
   }
+});
+
+test("historical routes reject empty successful shells and a sitemap with unreviewed records", async () => {
+  const archived = SITE_CONFIG.checks.find(check => check.id.startsWith('route-historical-'));
+  const sitemap = mockPayloadFor('route-sitemap');
+  const outputDir = await mkdtemp(path.join(tmpdir(), 'gov-archive-gate-'));
+  const server = await startServer({
+    [archived.id]: { status: 200, headers: { 'content-type': 'text/html' }, body: '<html><body><div id="root"></div></body></html>' },
+    'route-sitemap': { ...sitemap, body: sitemap.body.replace('</urlset>', '<url><loc>https://gov.bittrees.org/proposals/new</loc></url></urlset>') },
+  });
+  try {
+    const run = await runReleaseGate({ mode: 'baseline', baseUrl: server.baseUrl, outputDir, timeoutMs: 5000 });
+    assert.equal(run.pass, false);
+    assert(run.results.find(result => result.id === archived.id).assertions.some(item => item.kind === 'body-content' && !item.pass));
+    assert(run.results.find(result => result.id === 'route-sitemap').assertions.some(item => item.kind === 'sitemap-cohort' && !item.pass));
+  } finally { await server.close(); }
+});
+
+test("public record checks reject production noindex, duplicate canonicals and bot-scoped exclusions", () => {
+  const check = SITE_CONFIG.checks.find(check => check.id.startsWith('route-historical-'));
+  const fixture = mockPayloadFor(check.id);
+  const payload = { ...fixture, contentType: 'text/html', url: 'https://gov.bittrees.org' + check.path };
+  assert(buildAssertions(check, payload, fixture.body).every(item => item.pass));
+  const blocked = { ...payload, headers: { ...payload.headers, 'x-robots-tag': 'googlebot: noindex' } };
+  assert(buildAssertions(check, blocked, fixture.body).some(item => item.kind === 'index-policy' && !item.pass));
+  const preview = { ...blocked, url: 'https://gov-preview.vercel.app' + check.path };
+  assert(buildAssertions(check, preview, fixture.body).every(item => item.pass));
+  const hidden = fixture.body.replace('</head>', '<meta name="googlebot" content="none"></head>');
+  assert(buildAssertions(check, preview, hidden).some(item => item.kind === 'index-policy' && !item.pass));
+  const duplicate = fixture.body.replace('</head>', '<link rel="canonical" href="https://gov.bittrees.org/"></head>');
+  assert(buildAssertions(check, payload, duplicate).some(item => item.kind === 'canonical' && !item.pass));
+});
+
+test("the sitemap gate rejects HTML wrappers, foreign namespaces and hidden extra XML content", () => {
+  const check = SITE_CONFIG.checks.find(check => check.id === 'route-sitemap');
+  const fixture = mockPayloadFor(check.id);
+  const payload = { ...fixture, contentType: 'application/xml', url: 'https://gov.bittrees.org/sitemap.xml' };
+  assert(buildAssertions(check, payload, fixture.body).every(item => item.pass));
+  for (const body of [
+    '<html>' + fixture.body.replace('http://www.sitemaps.org/schemas/sitemap/0.9', 'https://example.invalid/not-sitemaps') + '</html>',
+    fixture.body.replace('http://www.sitemaps.org/schemas/sitemap/0.9', 'https://example.invalid/not-sitemaps'),
+    fixture.body.replace('</urlset>', '<![CDATA[<url><loc>https://gov.bittrees.org/proposals/new</loc></url>]]></urlset>'),
+  ]) assert(buildAssertions(check, payload, body).some(item => item.kind === 'sitemap-cohort' && !item.pass));
 });
 
 test("canary mode detects contract drift against a saved baseline", async () => {

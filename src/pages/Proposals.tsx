@@ -1,4 +1,6 @@
 import { ProposalsIntroduction } from "../components/PublicIntroductions";
+import { ProposalArchiveList } from "../components/ProposalArchive";
+import { historicalProposals, historicalProposalForId } from "../lib/proposalArchive";
 import { Link } from "react-router";
 import { useProposals, winningChoice, proposalOutcome } from "../lib/snapshot";
 import { StateBadge, OutcomeBadge, ResultBar } from "../components/gov";
@@ -10,6 +12,7 @@ export default function Proposals() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
       <ProposalsIntroduction />
+      <ProposalArchiveList />
 
       {isLoading && <p style={{ color: "var(--color-ink-dim)", fontFamily: "var(--font-sans)", fontSize: "0.875rem" }}>Loading proposals…</p>}
       {isError && (
@@ -17,12 +20,12 @@ export default function Proposals() {
           Couldn't load proposals from Snapshot just now — please try again shortly.
         </p>
       )}
-      {proposals && proposals.length === 0 && (
+      {proposals && proposals.length === 0 && historicalProposals.length === 0 && (
         <p style={{ color: "var(--color-ink-dim)", fontFamily: "var(--font-sans)", fontSize: "0.875rem" }}>No proposals yet.</p>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        {proposals?.map((p) => {
+        {proposals?.filter(p => !historicalProposalForId(p.id)).map((p) => {
           const win = winningChoice(p.scores);
           return (
             <Link

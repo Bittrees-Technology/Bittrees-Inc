@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { build } from 'vite';
-import { publicPages, privatePages, routeSeo, SITE_URL, SOCIAL_IMAGE, IMAGE_ALT } from '../src/lib/seo.ts';
+import { dirname } from 'node:path';
+import { indexablePages, routeSeo, SITE_URL, SOCIAL_IMAGE, IMAGE_ALT } from '../src/lib/seo.ts';
 
 // Compile the same pure public components used by the app. The separate entry
 // deliberately excludes its wallet providers, private workspaces and live data.
@@ -46,7 +47,11 @@ function render(path, publicPage = false) {
   return template.replace(/<title>.*?<\/title>/s,'').replace(/<meta name="description"[^>]*>/,'').replace('</head>',`${head}\n</head>`).replace('<div id="root"></div>',`<div id="root">${content}</div>`);
 }
 await mkdir('dist/seo', {recursive:true});
-for(const path of Object.keys(publicPages)) await writeFile(path==='/' ? 'dist/index.html' : `dist/seo/${path.slice(1)}.html`, render(path,true));
+for(const path of Object.keys(indexablePages)) {
+  const file=path==='/' ? 'dist/index.html' : `dist/seo/${path.slice(1)}.html`;
+  await mkdir(dirname(file), {recursive:true});
+  await writeFile(file, render(path,true));
+}
 await writeFile('dist/seo/workspace.html',render('/workspace'));
-await writeFile('dist/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${Object.keys(publicPages).map(p=>`\n  <url><loc>${SITE_URL}${p}</loc></url>`).join('')}\n</urlset>\n`);
-console.log(`Prerendered approved content and metadata for ${Object.keys(publicPages).length} public pages; private workspaces and unapproved record pages remain excluded from sitemap.`);
+await writeFile('dist/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${Object.keys(indexablePages).map(p=>`\n  <url><loc>${SITE_URL}${p}</loc></url>`).join('')}\n</urlset>\n`);
+console.log(`Prerendered approved content and metadata for ${Object.keys(indexablePages).length} public pages; private workspaces and unapproved record pages remain excluded from sitemap.`);

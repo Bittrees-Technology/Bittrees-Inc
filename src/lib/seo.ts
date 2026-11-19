@@ -1,3 +1,5 @@
+import { historicalProposals, proposalPath } from "./proposalArchive.ts";
+
 export const SITE_URL = "https://gov.bittrees.org";
 export const SOCIAL_IMAGE = `${SITE_URL}/social/governance.png`;
 export const IMAGE_ALT = "Bittrees Governance — proposals, voting and community, with the Bittrees tree emblem.";
@@ -14,9 +16,14 @@ export const publicPages: Record<string, { title: string; description: string }>
   "/69420": { title: "Revenue & Token Flow | Bittrees", description: "Explore the Bittrees revenue and token-flow model and how its components relate to the wider organization." },
 };
 export const privatePages = ["/admin", "/proposals/new", "/messenger"];
+export const publicProposalPages = Object.fromEntries(historicalProposals.map(entry => [proposalPath(entry.snapshot.id), {
+  title: entry.snapshot.title.trim() + " | Bittrees Governance",
+  description: entry.summary,
+}]));
+export const indexablePages = { ...publicPages, ...publicProposalPages };
 export function routeSeo(pathname: string) {
   const path = pathname.replace(/\/+$/, "") || "/";
-  const page = publicPages[path];
+  const page = indexablePages[path];
   return {
     title: page?.title ?? "Workspace | Bittrees Governance",
     description: page?.description ?? "Connect to the Bittrees governance workspace. Access to actions and conversations depends on your permissions.",

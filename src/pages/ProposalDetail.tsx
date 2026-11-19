@@ -16,11 +16,25 @@ import {
   type VoteChoice,
 } from "../lib/snapshot";
 import { StateBadge, OutcomeBadge, ResultBar } from "../components/gov";
+import { HistoricalProposalContent } from "../components/ProposalArchive";
+import { historicalProposalForId } from "../lib/proposalArchive";
 import { fmtNumber, relativeTime, shortAddress, etherscanAddress } from "../lib/links";
 
 export default function ProposalDetail() {
   const { id } = useParams();
   const { data: proposal, isLoading, isError } = useProposal(id);
+  const archived = historicalProposalForId(id);
+
+  if (archived) {
+    // Use the same reviewed public text before and after the client mounts.
+    // Existing actions still require a fresh source record and their own gates.
+    if (proposal === null || proposal?.flagged) return <div><Link to="/proposals">← All proposals</Link><p role="status">This proposal is no longer available from Snapshot.</p></div>;
+    return <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      <HistoricalProposalContent entry={archived} />
+      {isError && <p role="status" style={dim}>The live Snapshot record could not be checked. The historical record above shows its recorded source review date.</p>}
+      {proposal && <><VotePanel proposal={proposal} /><ModeratePanel proposal={proposal} /></>}
+    </div>;
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>

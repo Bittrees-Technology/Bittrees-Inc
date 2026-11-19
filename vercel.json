@@ -65,6 +65,14 @@
       "destination": "/seo/workspace.html"
     },
     {
+      "source": "/proposals/0x1df39dbe12b37bbcd22e8dc4667522a1d66b25daa7219296d2f9033b68d9dfac",
+      "destination": "/seo/proposals/0x1df39dbe12b37bbcd22e8dc4667522a1d66b25daa7219296d2f9033b68d9dfac.html"
+    },
+    {
+      "source": "/proposals/0x2efe1b50a350ee4833682437612b985b3147a0d0266376ca60b2a0ef23f6dab2",
+      "destination": "/seo/proposals/0x2efe1b50a350ee4833682437612b985b3147a0d0266376ca60b2a0ef23f6dab2.html"
+    },
+    {
       "source": "/proposals/:id",
       "destination": "/seo/workspace.html"
     },
@@ -95,7 +103,7 @@
       ]
     },
     {
-      "source": "/proposals/:id",
+      "source": "/proposals/((?!(?:0x1df39dbe12b37bbcd22e8dc4667522a1d66b25daa7219296d2f9033b68d9dfac|0x2efe1b50a350ee4833682437612b985b3147a0d0266376ca60b2a0ef23f6dab2)$).*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

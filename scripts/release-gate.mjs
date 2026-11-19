@@ -2,6 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
+import { historicalProposals, proposalPath } from "../src/lib/proposalArchive.ts";
+import { indexablePages, SITE_URL } from "../src/lib/seo.ts";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const SNAPSHOT_HEADERS = [
@@ -39,6 +41,36 @@ export const SITE_CONFIG = {
       path: "/forum",
       kind: "route",
       expect: { status: 200, contentTypeIncludes: "text/html" },
+      signature: [{ type: "header", key: "content-type" }],
+    },
+    ...historicalProposals.map(entry => ({
+      id: "route-historical-" + entry.snapshot.id,
+      label: entry.snapshot.title.trim(),
+      path: proposalPath(entry.snapshot.id),
+      kind: "route",
+      expect: {
+        status: 200,
+        contentTypeIncludes: "text/html",
+        indexable: true,
+        canonical: SITE_URL + proposalPath(entry.snapshot.id),
+        bodyIncludes: [entry.snapshot.title.trim(), entry.sourceUrl, entry.snapshot.id, entry.snapshot.body.slice(0, 100), "Original proposal text", "does not establish that the proposal was implemented"],
+      },
+      signature: [{ type: "header", key: "content-type" }],
+    })),
+    ...["/proposals/new", "/proposals/0x" + "f".repeat(64)].map((path, i) => ({
+      id: "route-excluded-proposal-" + i,
+      label: i === 0 ? "Proposal creation remains excluded" : "Unreviewed proposal remains excluded",
+      path,
+      kind: "route",
+      expect: { status: 200, contentTypeIncludes: "text/html", noindex: true },
+      signature: [{ type: "header", key: "x-robots-tag" }],
+    })),
+    {
+      id: "route-sitemap",
+      label: "Reviewed public sitemap cohort",
+      path: "/sitemap.xml",
+      kind: "route",
+      expect: { status: 200, contentTypeIncludes: "xml", sitemapUrls: Object.keys(indexablePages).map(path => SITE_URL + path) },
       signature: [{ type: "header", key: "content-type" }],
     },
     {
@@ -268,7 +300,7 @@ function truncate(value, maxLength = 400) {
   return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 }
 
-function buildAssertions(check, payload) {
+export function buildAssertions(check, payload, bodyText = "") {
   const assertions = [];
   const expect = check.expect ?? {};
 
@@ -301,6 +333,35 @@ function buildAssertions(check, payload) {
       actual: actual || "(missing)",
       message: `${key}=${actual || "(missing)"}`,
     });
+  }
+
+  for (const required of expect.bodyIncludes ?? []) {
+    assertions.push({ kind: "body-content", pass: bodyText.includes(required), expected: required, message: "Required historical content: " + required });
+  }
+
+  const attribute = (tag, name) => tag.match(new RegExp("\\b" + name + "\\s*=\\s*(['\"])(.*?)\\1", "i"))?.[2] ?? "";
+  if (expect.canonical) {
+    const canonicals = [...bodyText.matchAll(/<link\b[^>]*>/gi)].map(match => match[0]).filter(tag => attribute(tag, "rel").toLowerCase() === "canonical").map(tag => attribute(tag, "href"));
+    assertions.push({ kind: "canonical", pass: canonicals.length === 1 && canonicals[0] === expect.canonical, expected: expect.canonical, actual: canonicals, message: "One exact public record canonical" });
+  }
+  if (expect.indexable || expect.noindex) {
+    const noindex = value => /(?:^|[\s,:;])(?:noindex|none)(?:$|[\s,;])/i.test(value);
+    const meta = [...bodyText.matchAll(/<meta\b[^>]*>/gi)].map(match => match[0]).filter(tag => /^(?:robots|googlebot(?:-news)?|bingbot)$/i.test(attribute(tag, "name"))).some(tag => noindex(attribute(tag, "content")));
+    const header = noindex(payload.headers["x-robots-tag"] ?? "");
+    const production = new URL(payload.url).hostname === new URL(SITE_CONFIG.productionBaseUrl).hostname;
+    // Vercel may add its own noindex header to previews. Public HTML must still
+    // be indexable there, while production must have neither exclusion.
+    const pass = expect.indexable ? !meta && (!production || !header) : meta || header;
+    assertions.push({ kind: "index-policy", pass, expected: expect.indexable ? "public historical content" : "excluded workspace", actual: { metaNoindex: meta, headerNoindex: header, production }, message: "Record/workspace index policy" });
+  }
+  if (expect.sitemapUrls) {
+    const urls = [...bodyText.matchAll(/<loc>([\s\S]*?)<\/loc>/g)].map(match => match[1].trim());
+    const expected = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + expect.sitemapUrls.map(url => '<url><loc>' + url + '</loc></url>').join('') + '</urlset>';
+    const normalize = text => text.trim().replace(/>\s+</g, '><');
+    // Compare the complete deterministic artifact, not just a loc regex: HTML,
+    // a foreign XML namespace, extra nodes and CDATA must not masquerade as it.
+    const pass = normalize(bodyText) === expected;
+    assertions.push({ kind: "sitemap-cohort", pass, expected: expect.sitemapUrls, actual: urls, message: "Only current reviewed public URLs in sitemap" });
   }
 
   for (const jsonAssertion of expect.json ?? []) {
@@ -388,7 +449,7 @@ async function fetchCheck(baseUrl, check, timeoutMs) {
       bodyPreview: truncate(bodyText),
       json,
     };
-    const assertions = buildAssertions(check, payload);
+    const assertions = buildAssertions(check, payload, bodyText);
     return {
       ...payload,
       assertions,
