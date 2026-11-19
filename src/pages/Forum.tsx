@@ -1,3 +1,4 @@
+import { ForumIntroduction } from "../components/PublicIntroductions";
 import { ForumSubscriptions } from "../components/ForumSubscriptions";
 import { useTopics } from "../lib/forum";
 import { Composer, PostCard } from "../components/forum";
@@ -7,24 +8,7 @@ export default function Forum() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.75rem", maxWidth: "760px" }}>
-      <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
-        <p className="text-label">Bittrees, Inc.</p>
-        <h1 className="text-display">Forum</h1>
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "0.9375rem",
-            color: "var(--color-ink-muted)",
-            maxWidth: "640px",
-            lineHeight: 1.6,
-            marginTop: "0.5rem",
-          }}
-        >
-          A decentralized governance forum. Every post is signed by your wallet and recorded
-          on-chain as an EAS attestation on Base — anyone can read it, no account required.
-          Starting a discussion requires 69 BGOV; any connected wallet can reply. Authors can edit their posts with a new signed version; earlier versions remain on-chain.
-        </p>
-      </header>
+      <ForumIntroduction />
 
       <ForumSubscriptions />
       <Composer />

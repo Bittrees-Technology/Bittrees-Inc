@@ -1,3 +1,4 @@
+import { ContributionIntroduction } from "../components/PublicIntroductions";
 import {useContributorSession,contributorRequest} from '../lib/contributorSession';
 import './contributor-application.css';
 import { Link } from "react-router";
@@ -138,14 +139,7 @@ export default function Contribute() {
 
   return (
     <div className="contributor-application" style={{display:"flex",flexDirection:"column",gap:"1.5rem"}}>
-      <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
-        <p><Link to="/admin/contributors">My contribution</Link></p>
-        <p className="text-label">Bittrees, Inc.</p>
-        <h1 className="text-display">Become a contributor</h1>
-        <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", color: "var(--color-ink-muted)", lineHeight: 1.6, marginTop: "0.5rem" }}>
-          Tell us what you would like to contribute. Submit with your wallet on Base, then follow review, your memorandum and credential from My contribution.
-        </p>
-      </header>
+      <ContributionIntroduction />
 
       {status === "done" ? (
         <div className="card" style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>

@@ -1,3 +1,4 @@
+import { MintIntroduction } from "../components/PublicIntroductions";
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { useAccount, useChainId, useSwitchChain, useWalletClient, usePublicClient } from "wagmi";
@@ -105,22 +106,7 @@ export default function Mint() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem", maxWidth: "680px", margin: "0 auto", width: "100%" }}>
-      <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
-        <p className="text-label">Bittrees, Inc.</p>
-        <h1 className="text-display">Mint BGOV</h1>
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "0.9375rem",
-            color: "var(--color-ink-muted)",
-            lineHeight: 1.6,
-            marginTop: "0.5rem",
-          }}
-        >
-          BGOV is the common stock of Bittrees, Inc. — minting it acquires an equity interest that
-          carries the governance (voting) rights used across this site.
-        </p>
-      </header>
+      <MintIntroduction />
 
       {/* BGOV stock certificate */}
       <div style={{ display: "flex", justifyContent: "center" }}>
