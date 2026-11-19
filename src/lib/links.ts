@@ -2,12 +2,17 @@ export const CHAT_URL = "https://chat.bittrees.org";
 
 /** Family + governance links and small formatting helpers for the gov app. */
 
-/** The Bittrees family of sites — surfaced in the header + footer. */
-export const FAMILY = [
-  { label: "bittrees.org", href: "https://bittrees.org" },
+/** Bittrees is the umbrella; the Ecosystem directory covers the other products. */
+export const BITTREES_LINKS = [
+  { label: "Bittrees", href: "https://bittrees.org" },
+  { label: "Ecosystem", href: "https://index.bittrees.org" },
+] as const;
+
+/** Only Governance, Research and Capital form the DAO. */
+export const DAO_LINKS = [
+  { label: "Governance", href: "https://gov.bittrees.org" },
   { label: "Research", href: "https://research.bittrees.org" },
   { label: "Capital", href: "https://capital.bittrees.org" },
-  { label: "Index", href: "https://index.bittrees.org" },
 ] as const;
 
 /**

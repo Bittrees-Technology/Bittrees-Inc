@@ -1,5 +1,22 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { build } from 'vite';
 import { publicPages, privatePages, routeSeo, SITE_URL, SOCIAL_IMAGE, IMAGE_ALT } from '../src/lib/seo.ts';
+
+// Compile the same pure public components used by the app. The separate entry
+// deliberately excludes its wallet providers, private workspaces and live data.
+await build({
+  configFile: false,
+  logLevel: 'warn',
+  esbuild: { jsx: 'automatic' },
+  build: {
+    ssr: 'src/prerender.tsx',
+    outDir: 'dist-ssr',
+    target: 'node24',
+    rollupOptions: { output: { entryFileNames: 'public-pages.mjs' } },
+  },
+});
+const { renderPublicPage } = await import('../dist-ssr/public-pages.mjs');
+
 const escape = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const template = await readFile('dist/index.html', 'utf8');
 function render(path, publicPage = false) {
@@ -25,11 +42,11 @@ function render(path, publicPage = false) {
     `<meta name="twitter:image" content="${SOCIAL_IMAGE}">`,
     `<meta name="twitter:image:alt" content="${IMAGE_ALT}">`,
   ].join('\n    ');
-  const content = publicPage ? `<main style="max-width:900px;margin:4rem auto;padding:24px;font:20px Georgia,serif"><h1>${escape(meta.title.split(' | ')[0])}</h1><p>${escape(meta.description)}</p><nav aria-label="Governance"><a href="/">Home</a> · <a href="/proposals">Proposals</a> · <a href="/structure">Structure</a> · <a href="/contribute">Contribute</a></nav><noscript><p>Enable JavaScript for live data, wallet connections and interactive governance tools.</p></noscript></main>` : '';
+  const content = publicPage ? renderPublicPage(path) : '';
   return template.replace(/<title>.*?<\/title>/s,'').replace(/<meta name="description"[^>]*>/,'').replace('</head>',`${head}\n</head>`).replace('<div id="root"></div>',`<div id="root">${content}</div>`);
 }
 await mkdir('dist/seo', {recursive:true});
 for(const path of Object.keys(publicPages)) await writeFile(path==='/' ? 'dist/index.html' : `dist/seo/${path.slice(1)}.html`, render(path,true));
 await writeFile('dist/seo/workspace.html',render('/workspace'));
 await writeFile('dist/sitemap.xml',`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${Object.keys(publicPages).map(p=>`\n  <url><loc>${SITE_URL}${p}</loc></url>`).join('')}\n</urlset>\n`);
-console.log(`Built initial-HTML metadata for ${Object.keys(publicPages).length} public pages; ${privatePages.length} workspace routes excluded from sitemap.`);
+console.log(`Prerendered approved content and metadata for ${Object.keys(publicPages).length} public pages; private workspaces and unapproved record pages remain excluded from sitemap.`);

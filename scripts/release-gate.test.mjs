@@ -9,6 +9,19 @@ import { SITE_CONFIG, runReleaseGate } from "./release-gate.mjs";
 
 function mockPayloadFor(checkId) {
   switch (checkId) {
+    case "route-messenger-redirect":
+    case "route-chirpy-redirect":
+      return {
+        status: 308,
+        headers: { location: "https://chat.bittrees.org" },
+        body: "Redirecting to Chat",
+      };
+    case "route-not-found":
+      return {
+        status: 404,
+        headers: { "content-type": "text/html; charset=utf-8" },
+        body: '<!doctype html><html><head><meta name="robots" content="noindex,follow"></head><body><h1>Page not found</h1></body></html>',
+      };
     case "api-community":
       return {
         status: 200,
@@ -95,8 +108,61 @@ test("baseline mode captures a passing snapshot", async () => {
       timeoutMs: 5000,
     });
     assert.equal(run.pass, true);
+    for (const id of ["route-messenger-redirect", "route-chirpy-redirect"]) {
+      const result = run.results.find((item) => item.id === id);
+      assert.equal(result.status, 308, "the gate must observe the Gov response without following external Chat");
+      assert.equal(result.headers.location, "https://chat.bittrees.org");
+      assert(result.assertions.some((item) => item.kind === "header" && item.pass));
+    }
+    assert.equal(run.results.find((item) => item.id === "route-not-found").status, 404);
     assert.match(run.artifacts.jsonPath, /run\.json$/);
     assert.match(run.artifacts.reportPath, /report\.md$/);
+  } finally {
+    await server.close();
+  }
+});
+
+test("redirect checks reject an HTML success response and an incorrect destination", async () => {
+  const outputDir = await mkdtemp(path.join(tmpdir(), "gov-release-gate-"));
+  const server = await startServer({
+    "route-messenger-redirect": {
+      status: 200,
+      headers: { "content-type": "text/html", location: "https://chat.bittrees.org" },
+      body: "A successful page is not the required redirect",
+    },
+    "route-chirpy-redirect": {
+      status: 308,
+      headers: { location: "https://unexpected.invalid/chat" },
+      body: "Wrong destination",
+    },
+  });
+  try {
+    const run = await runReleaseGate({ mode: "baseline", baseUrl: server.baseUrl, outputDir, timeoutMs: 5000 });
+    assert.equal(run.pass, false);
+    const messenger = run.results.find((item) => item.id === "route-messenger-redirect");
+    assert(messenger.assertions.some((item) => item.kind === "status" && !item.pass && item.actual === 200));
+    const chirpy = run.results.find((item) => item.id === "route-chirpy-redirect");
+    assert.equal(chirpy.status, 308, "a wrong redirect target must not be fetched");
+    assert(chirpy.assertions.some((item) => item.kind === "header" && !item.pass && item.actual === "https://unexpected.invalid/chat"));
+  } finally {
+    await server.close();
+  }
+});
+
+test("unknown routes cannot pass as a successful SPA fallback", async () => {
+  const outputDir = await mkdtemp(path.join(tmpdir(), "gov-release-gate-"));
+  const server = await startServer({
+    "route-not-found": {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8" },
+      body: '<!doctype html><html><body><div id="root"></div></body></html>',
+    },
+  });
+  try {
+    const run = await runReleaseGate({ mode: "baseline", baseUrl: server.baseUrl, outputDir, timeoutMs: 5000 });
+    assert.equal(run.pass, false);
+    const result = run.results.find((item) => item.id === "route-not-found");
+    assert(result.assertions.some((item) => item.kind === "status" && !item.pass && item.expected === 404));
   } finally {
     await server.close();
   }

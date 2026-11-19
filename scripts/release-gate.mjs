@@ -10,6 +10,7 @@ const SNAPSHOT_HEADERS = [
   "last-modified",
   "etag",
   "x-robots-tag",
+  "location",
 ];
 
 export const SITE_CONFIG = {
@@ -41,11 +42,30 @@ export const SITE_CONFIG = {
       signature: [{ type: "header", key: "content-type" }],
     },
     {
-      id: "route-chat",
-      label: "Chat route",
-      path: "/chat",
+      id: "route-messenger-redirect",
+      label: "Legacy Messenger redirect",
+      path: "/messenger",
       kind: "route",
-      expect: { status: 200, contentTypeIncludes: "text/html" },
+      redirect: "manual",
+      expect: { status: 308, headers: { location: "https://chat.bittrees.org" } },
+      signature: [{ type: "header", key: "location" }],
+    },
+    {
+      id: "route-chirpy-redirect",
+      label: "Legacy Chirpy redirect",
+      path: "/chirpy",
+      kind: "route",
+      redirect: "manual",
+      expect: { status: 308, headers: { location: "https://chat.bittrees.org" } },
+      signature: [{ type: "header", key: "location" }],
+    },
+    {
+      id: "route-not-found",
+      label: "Unknown route",
+      path: "/__seo_release_gate_missing__",
+      kind: "route",
+      redirect: "manual",
+      expect: { status: 404, contentTypeIncludes: "text/html" },
       signature: [{ type: "header", key: "content-type" }],
     },
     {
@@ -272,6 +292,17 @@ function buildAssertions(check, payload) {
     });
   }
 
+  for (const [key, expected] of Object.entries(expect.headers ?? {})) {
+    const actual = payload.headers[key.toLowerCase()] || "";
+    assertions.push({
+      kind: "header",
+      pass: actual === expected,
+      expected,
+      actual: actual || "(missing)",
+      message: `${key}=${actual || "(missing)"}`,
+    });
+  }
+
   for (const jsonAssertion of expect.json ?? []) {
     const actual = readPath(payload.json, jsonAssertion.path);
     if (Object.prototype.hasOwnProperty.call(jsonAssertion, "equals")) {
@@ -324,6 +355,7 @@ async function fetchCheck(baseUrl, check, timeoutMs) {
   try {
     const response = await fetch(targetUrl, {
       headers: { accept: "application/json,text/html;q=0.9,*/*;q=0.8" },
+      ...(check.redirect ? { redirect: check.redirect } : {}),
       signal: controller.signal,
     });
     const bodyText = await response.text();

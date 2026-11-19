@@ -1,3 +1,4 @@
+import { ProposalsIntroduction } from "../components/PublicIntroductions";
 import { Link } from "react-router";
 import { useProposals, winningChoice, proposalOutcome } from "../lib/snapshot";
 import { StateBadge, OutcomeBadge, ResultBar } from "../components/gov";
@@ -8,31 +9,7 @@ export default function Proposals() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-      <header style={{ borderBottom: "1px solid var(--color-border)", paddingBottom: "1.5rem" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
-          <div>
-            <p className="text-label">Governance</p>
-            <h1 className="text-display">Proposals</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", marginTop: "0.4rem", flexWrap: "wrap" }}>
-            <Link to={ROUTES.newProposal} className="btn-primary" style={{ textDecoration: "none", whiteSpace: "nowrap" }}>
-              New proposal
-            </Link>
-          </div>
-        </div>
-        <p
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: "0.9375rem",
-            color: "var(--color-ink-muted)",
-            maxWidth: "640px",
-            lineHeight: 1.6,
-            marginTop: "0.5rem",
-          }}
-        >
-          Bittrees Improvement Proposals (BIPs), voted by BGOV common-stock holders.
-        </p>
-      </header>
+      <ProposalsIntroduction />
 
       {isLoading && <p style={{ color: "var(--color-ink-dim)", fontFamily: "var(--font-sans)", fontSize: "0.875rem" }}>Loading proposals…</p>}
       {isError && (
