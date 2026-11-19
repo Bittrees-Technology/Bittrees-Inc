@@ -1,15 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
-import { publicPages, privatePages, routeSeo, SITE_URL } from '../src/lib/seo.ts';
+import { publicPages, indexablePages, privatePages, routeSeo, SITE_URL } from '../src/lib/seo.ts';
+import { historicalProposals, proposalPath } from '../src/lib/proposalArchive.ts';
 const config=JSON.parse(readFileSync('vercel.json'));
 test('public and private route boundaries have matching initial-HTML routing',()=>{
- for(const path of Object.keys(publicPages).filter(p=>p!=='/')) assert(config.rewrites.some(r=>r.source===path&&r.destination===`/seo/${path.slice(1)}.html`));
+ for(const path of Object.keys(indexablePages).filter(p=>p!=='/')) assert(config.rewrites.some(r=>r.source===path&&r.destination===`/seo/${path.slice(1)}.html`));
  for(const path of privatePages) { assert.match(routeSeo(path).robots,/noindex/);assert(config.rewrites.some(r=>r.source===path&&r.destination==='/seo/workspace.html')); }
  assert(!config.rewrites.some(r=>r.source.includes('(?!api/')));
 });
 test('built public documents have one canonical, large share image and real initial text',()=>{
- for(const [path,meta] of Object.entries(publicPages)) {
+ for(const [path,meta] of Object.entries(indexablePages)) {
   const html=readFileSync(path==='/'?'dist/index.html':`dist/seo/${path.slice(1)}.html`,'utf8');
   assert.equal((html.match(/rel="canonical"/g)||[]).length,1);
   assert(html.includes(`href="${SITE_URL}${path}"`));
@@ -18,6 +19,27 @@ test('built public documents have one canonical, large share image and real init
  }
  const privateHtml=readFileSync('dist/seo/workspace.html','utf8');assert(privateHtml.includes('noindex,follow'));assert(!privateHtml.includes('rel="canonical"'));
  const sitemap=readFileSync('dist/sitemap.xml','utf8');for(const p of privatePages)assert(!sitemap.includes(`<loc>${SITE_URL}${p}</loc>`));
+});
+test('the historical archive exposes only its reviewed records, source dates and recorded results',()=>{
+ const index=readFileSync('dist/seo/proposals.html','utf8');
+ const sitemap=readFileSync('dist/sitemap.xml','utf8');
+ const actual=[...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match=>match[1]);
+ assert.deepEqual(actual.sort(),Object.keys(indexablePages).map(path=>SITE_URL+path).sort());
+ for(const entry of historicalProposals){
+  const p=entry.snapshot, path=proposalPath(p.id);
+  assert(index.includes(`href="${path}"`));
+  const html=readFileSync(`dist/seo${path}.html`,'utf8');
+  const text=html.replace(/<[^>]*>/g,'').replaceAll('&amp;','&').replaceAll('&quot;','"').replaceAll('&#x27;',"'").replaceAll('&lt;','<').replaceAll('&gt;','>');
+  assert(text.includes(p.body),`${path} must preserve its original public text`);
+  for(const timestamp of [p.created,p.start,p.end]) assert(html.includes(`dateTime="${new Date(timestamp*1000).toISOString()}"`));
+  assert(html.includes(`href="${entry.sourceUrl}"`));
+  assert(html.includes('href="/proposals"'));
+  assert(text.includes('does not establish that the proposal was implemented'));
+  assert(text.includes('current policy'));
+  for(const choice of p.choices) assert(text.includes(choice));
+  for(const total of [p.scores_total,p.quorum]) assert(text.includes(total.toLocaleString('en-US')));
+  assert(!/<(?:form|input|textarea)\b/.test(html));
+ }
 });
 test('initial HTML contains the existing public explanations and complete DAO navigation',()=>{
  const expected={

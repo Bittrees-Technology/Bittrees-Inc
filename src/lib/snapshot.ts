@@ -46,6 +46,7 @@ export interface SnapshotSpace {
 
 export interface SnapshotProposal {
   id: string;
+  flagged?: boolean;
   title: string;
   body: string;
   choices: string[];
@@ -74,7 +75,7 @@ async function gql<T>(query: string, variables?: Record<string, unknown>): Promi
   return json.data as T;
 }
 
-const PROPOSAL_FIELDS = `id title body choices start end state scores scores_total votes author created quorum type`;
+const PROPOSAL_FIELDS = `id title body choices start end state scores scores_total votes author created quorum type flagged`;
 
 // ── Hooks ────────────────────────────────────────────────────────────────
 export function useSpace() {

@@ -8,6 +8,8 @@ import Metaverse from "./pages/Metaverse";
 import TokenFlow from "./pages/TokenFlow";
 import StructureContent from "./components/StructureContent";
 import Footer from "./components/Footer";
+import { ProposalArchiveList, HistoricalProposalContent } from "./components/ProposalArchive";
+import { historicalProposalForPath } from "./lib/proposalArchive";
 import {
   ProposalsIntroduction,
   ForumIntroduction,
@@ -15,11 +17,11 @@ import {
   MintIntroduction,
 } from "./components/PublicIntroductions";
 
-// Explicit public-only entry: no wallet providers, sessions, API readers or live
-// proposal/forum records are imported or fetched during static generation.
+// Public-only entry: no wallet providers, sessions, API readers or live records.
+// The only proposal bodies are the explicitly reviewed historical source cohort.
 const publicContent: Record<string, ComponentType> = {
   "/": Overview,
-  "/proposals": ProposalsIntroduction,
+  "/proposals": () => <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}><ProposalsIntroduction /><ProposalArchiveList /></div>,
   "/structure": StructureContent,
   "/mint": MintIntroduction,
   "/forum": ForumIntroduction,
@@ -31,7 +33,8 @@ const publicContent: Record<string, ComponentType> = {
 };
 
 export function renderPublicPage(path: string): string {
-  const Content = publicContent[path];
+  const archived = historicalProposalForPath(path);
+  const Content = archived ? () => <HistoricalProposalContent entry={archived} /> : publicContent[path];
   if (!Content) throw new Error(`No approved public content renderer for ${path}`);
 
   return renderToStaticMarkup(
